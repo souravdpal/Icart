@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  /* 1. Map keyframes to your utility variable using a dash */
+  --animate-error-shake: error-shake 0.3s ease-in-out 2;
+
+  /* 2. Declare the keyframe values in lowercase */
+  @keyframes error-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+}
+
+
+body {
+    background-image: url("https://tinyurl.com/seeeeew3e");
+}
