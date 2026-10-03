@@ -4,11 +4,29 @@ import { getUserId } from "../cookies/cookies_querries"
 import { error } from "console"
 import { cookies } from "next/headers"
 import { Row } from "postgres"
+import findProduct from "../product/findProduct"
 
 type ReturnObj<T> =
     | { ok: true; data: T, status: number }
     | { ok: false; error: string, status: number }
 
+interface ProductInfo_struct {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    brand: string;
+    price: number;
+    originalPrice: number;
+    discountPercent: number;
+    rating: number;
+    reviewCount: number;
+    tag: string;
+    isNew: boolean;
+    stock: number;
+    image: string;
+    affiliateUrl: string;
+}
 
 export async function addCartProduct(product_id: string): Promise<ReturnObj<string>> {
     try {
@@ -103,5 +121,35 @@ export async function GetUserCart(): Promise<ReturnObj<Row>> {
         }
 
     }
+
+}
+export async function getProduct(productId: string): Promise<ReturnObj<ProductInfo_struct>> {
+    const ProductInfo = await findProduct(productId)
+    try {
+        if (!ProductInfo) {
+            return {
+                ok: false,
+                error: `Cannot obtain cart status`,
+                status: 404
+            }
+        }
+
+        return {
+            ok: true,
+            data: ProductInfo,
+            status: 200
+        }
+
+    } catch (err) {
+
+        return {
+            ok: false,
+            error: `Cannot obtain cart status , Error  :${err} `,
+            status: 504
+        }
+
+    }
+
+
 
 }
