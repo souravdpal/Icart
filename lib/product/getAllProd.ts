@@ -1,6 +1,12 @@
-import prodData from "@/fake_data.json"
+import { sql } from "../sql/sql";
 
 
-export default function(){
-   return prodData
+
+
+
+export async function getAllProd() {
+   const prod = await sql`SELECT * FROM products LIMIT 10`
+   return prod
+
+   
 }

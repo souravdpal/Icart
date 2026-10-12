@@ -16,6 +16,7 @@ const page =async () => {
     return []
   }
   const dataCart =await getres()
+ 
   return (
     <div>
       {dataCart.map((prod:product)=>{

@@ -153,3 +153,11 @@ export async function getProduct(productId: string): Promise<ReturnObj<ProductIn
 
 
 }
+
+/*export async function getCartTotal():Promise<ReturnObj<{total : number,totalProd : number}>> {
+    const AllProducts = await sql`SELECT product_id , amount FROM cart`
+    AllProducts.map((per_prod)=>{
+        const prodData = await sql'SELECT '
+    })
+    
+}*/

@@ -26,6 +26,8 @@ interface ProductInfo_struct {
 
 const Cart = ({ product_id, amount }: { product_id: string, amount: number }) => {
   const [prods , SetProds]= useState<ProductInfo_struct|null>(null)
+  const  [total , setTotal] = useState(0)
+
   const getProductData = async (product_id: string,amount:number): Promise<void> => {
     const dataProd = await getProduct(product_id)
     if(dataProd.ok){
@@ -46,7 +48,7 @@ const Cart = ({ product_id, amount }: { product_id: string, amount: number }) =>
   if(!prods) return null
   return (
     <div>
-      <div>
+      <div className="felx-col gap-3 p-4 bg-gray-300">
       
         <Card {...prods}/>
       </div>
