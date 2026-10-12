@@ -1,6 +1,6 @@
-import findProduct from "@/lib/product/findProduct";
 import Product from "./components/product-card";
-import { privateDecrypt } from "crypto";
+import { prisma } from "@/lib/sql/prisma";
+
 
 export default async function ProductPage({
   params,
@@ -9,37 +9,37 @@ export default async function ProductPage({
   params: Promise<{ id: string }>;
 }) {
 
-  interface product {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  brand: string;
-  price: number;
-  originalPrice: number;
-  discountPercent: number;
-  rating: number;
-  reviewCount: number;
-  tag: string;
-  isNew: boolean;
-  stock: number;
-  image: string;
-  affiliateUrl: string;
-  }
-
-  const paramsData= await params;
+  const paramsData = await params;
   const id = paramsData.id;
+  const row = await prisma.products.findUnique({
+    where: { id }
+  })
 
-  let productData:product|undefined= findProduct(id)
-  console.log(productData)
 
-    if (!productData) {
+  if (!row) {
     return <div>Product not found</div>;
   }
+  const product = {
+    id: row.id,
+    title: row.title,
+    description: row.description ?? "",
+    category: row.category,
+    brand: row.brand,
+    price: Number(row.price),
+    originalPrice: Number(row.original_price),
+    discountPercent: row.discount_percent,
+    rating: Number(row.rating ?? 0),
+    reviewCount: row.review_count,
+    tag: row.tag ?? "",
+    isNew: row.is_new,
+    stock: row.stock,
+    image: row.image ?? "/placeholder.img",
+    affiliateUrl: row.affiliate_url ?? "",
+  };
 
   return (
     <div>
-      <Product {...productData} />
+      <Product {...product} />
     </div>
   );
 }

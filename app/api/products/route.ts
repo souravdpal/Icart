@@ -1,8 +1,7 @@
 import { prisma } from "@/lib/sql/prisma";
-import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-
 export const dynamic = "force-dynamic";
+import { Prisma } from "@/generated/prisma/client";
 
 const DEFAULT_LIMIT = 9;
 const MAX_LIMIT = 100;

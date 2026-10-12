@@ -1,6 +1,6 @@
 'use client'
 
-import React, { use, useEffect } from 'react'
+import {useEffect } from 'react'
 import { useState } from 'react'
 import Link from 'next/link';
 import { addCartProduct } from '@/lib/action/setCart';

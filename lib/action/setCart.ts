@@ -4,29 +4,15 @@ import { getUserId } from "../cookies/cookies_querries"
 import { error } from "console"
 import { cookies } from "next/headers"
 import { Row } from "postgres"
-import findProduct from "../product/findProduct"
-
+import { prisma } from "../sql/prisma"
+import { Rose } from "lucide-react"
+import { ProductInfo_struct } from "@/types/product_struct"
+import { toProduct } from "@/types/toProduct"
 type ReturnObj<T> =
     | { ok: true; data: T, status: number }
     | { ok: false; error: string, status: number }
 
-interface ProductInfo_struct {
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    brand: string;
-    price: number;
-    originalPrice: number;
-    discountPercent: number;
-    rating: number;
-    reviewCount: number;
-    tag: string;
-    isNew: boolean;
-    stock: number;
-    image: string;
-    affiliateUrl: string;
-}
+
 
 export async function addCartProduct(product_id: string): Promise<ReturnObj<string>> {
     try {
@@ -36,16 +22,16 @@ export async function addCartProduct(product_id: string): Promise<ReturnObj<stri
             return { ok: false, error: "Invalid user", status: 401 }
 
         }
+        const product = await prisma.cart.create({
+            data: {
+                id: crypto.randomUUID(),
+                user_id: UserId.user_id,
+                product_id: product_id,
+                amount: prod_amount,
 
-        await sql`INSERT INTO cart (id,user_id,product_id,amount)
-    VALUES(
-    ${crypto.randomUUID()},
-    ${UserId.user_id},
-    ${product_id},
-    ${prod_amount}
-    )
-    
-    `
+
+            }
+        })
 
     } catch (err) {
         console.log(err)
@@ -71,20 +57,16 @@ export async function isCart(prod_id: string): Promise<ReturnObj<boolean>> {
     }
 
     try {
-        const rows = await sql<{ in_cart: boolean }[]>`
-            SELECT EXISTS (
-                SELECT 1
-                FROM cart
-                WHERE user_id = ${UserId.user_id}
-                  AND product_id = ${prod_id}
-            ) AS in_cart
-        `
-
-        const inCart = rows[0].in_cart
-
+        const rows = await prisma.cart.findFirst({
+            where: {
+                user_id: UserId.user_id,
+                product_id: prod_id,
+            }
+        })
+        const in_cart: boolean = rows !== null;
         return {
             ok: true,
-            data: inCart,
+            data: in_cart,
             status: 200
         }
 
@@ -107,7 +89,16 @@ export async function GetUserCart(): Promise<ReturnObj<Row>> {
         }
     }
     try {
-        const rows = await sql`SELECT product_id,amount FROM cart WHERE user_id=${userid.user_id}`
+        const rows = prisma.cart.findMany({
+            where: {
+                user_id: userid.user_id
+            },
+            select: {
+                product_id: true,
+                amount: true,
+
+            },
+        })
         return {
             ok: true,
             data: rows,
@@ -124,7 +115,11 @@ export async function GetUserCart(): Promise<ReturnObj<Row>> {
 
 }
 export async function getProduct(productId: string): Promise<ReturnObj<ProductInfo_struct>> {
-    const ProductInfo = await findProduct(productId)
+    const ProductInfo = await prisma.products.findUnique({
+        where: {
+            id: productId,
+        }
+    })
     try {
         if (!ProductInfo) {
             return {
@@ -136,7 +131,7 @@ export async function getProduct(productId: string): Promise<ReturnObj<ProductIn
 
         return {
             ok: true,
-            data: ProductInfo,
+            data: toProduct(ProductInfo),
             status: 200
         }
 
