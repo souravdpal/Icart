@@ -8,6 +8,8 @@ import { prisma } from "../sql/prisma"
 import { Rose } from "lucide-react"
 import { ProductInfo_struct } from "@/types/product_struct"
 import { toProduct } from "@/types/toProduct"
+import { CartItem } from "@/types/products"
+import { toCartItem, type CartJoinRow } from "@/types/toCartItem"
 type ReturnObj<T> =
     | { ok: true; data: T, status: number }
     | { ok: false; error: string, status: number }
@@ -148,11 +150,34 @@ export async function getProduct(productId: string): Promise<ReturnObj<ProductIn
 
 
 }
+export async function getCartTotal(): Promise<
+  ReturnObj<{ total: number; totalProd: number }>
+> {
+  try {
+    const userId = await getUserId();
+    if (!userId) {
+      return { ok: false, error: "Invalid user", status: 401 };
+    }
 
-/*export async function getCartTotal():Promise<ReturnObj<{total : number,totalProd : number}>> {
-    const AllProducts = await sql`SELECT product_id , amount FROM cart`
-    AllProducts.map((per_prod)=>{
-        const prodData = await sql'SELECT '
-    })
-    
-}*/
+    const [row] = await sql`
+      SELECT
+        COALESCE(SUM(p.price * c.amount), 0) AS total,
+        COUNT(*)                             AS total_prod
+      FROM cart c
+      JOIN products p ON c.product_id = p.id
+      WHERE c.user_id = ${userId.user_id}
+    `;
+
+    return {
+      ok: true,
+      data: {
+        total: Number(row.total),
+        totalProd: Number(row.total_prod),
+      },
+      status: 200,
+    };
+  } catch (err) {
+    console.error(err);
+    return { ok: false, error: "Could not calculate cart total", status: 500 };
+  }
+}

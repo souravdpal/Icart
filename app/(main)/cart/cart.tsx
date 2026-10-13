@@ -2,30 +2,9 @@
 import { getProduct } from "@/lib/action/setCart";
 import { useEffect, useState } from "react";
 import Card from "./components/cart_card";
-
-interface ProductInfo_struct {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  brand: string;
-  price: number;
-  originalPrice: number;
-  discountPercent: number;
-  rating: number;
-  reviewCount: number;
-  tag: string;
-  isNew: boolean;
-  stock: number;
-  image: string;
-  affiliateUrl: string;
-  amount : number;
-
-}
-
-
+import { cart_prod_struct } from "@/types/products";
 const Cart = ({ product_id, amount }: { product_id: string, amount: number }) => {
-  const [prods , SetProds]= useState<ProductInfo_struct|null>(null)
+  const [prods , SetProds]= useState<cart_prod_struct|null>(null)
   const  [total , setTotal] = useState(0)
 
   const getProductData = async (product_id: string,amount:number): Promise<void> => {
@@ -52,6 +31,7 @@ const Cart = ({ product_id, amount }: { product_id: string, amount: number }) =>
       
         <Card {...prods}/>
       </div>
+      
     </div>
   )
 }
