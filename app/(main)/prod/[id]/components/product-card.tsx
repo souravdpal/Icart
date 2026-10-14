@@ -2,8 +2,10 @@
 import React from 'react'
 import { useState } from 'react';
 import CenterSection from './center-section'
-import { IndianRupee, Star, BadgePercent, Truck,Banknote } from 'lucide-react';
+import { IndianRupee, Star, BadgePercent, Truck,Banknote, Router } from 'lucide-react';
 import AddToCart from  './add-to-cart'
+import {useRouter} from 'next/navigation';
+
 interface product_schema {
     id: string;
     title: string;
@@ -23,6 +25,7 @@ interface product_schema {
 }
 const Product = (product: product_schema) => {
     const [more, setMore] = useState(false);
+    const router = useRouter()
 
     return (
         <div className='static bg-linear-to-b from-slate-100 to-zinc-200 group rounded-4xl text-clamp-3 m-auto ml-2 mr-5 h-170 w-330'>
@@ -57,7 +60,11 @@ const Product = (product: product_schema) => {
 
                         <AddToCart {...{prodId : product.id}}/>
                         <div className=' mt-70 gap-8 bg-yellow-400 rounded-lg  w-40 p-4  backdrop-blur-3xl shadow-md transition-transform duration-300 ease-in-out hover:bg-amber-300 cursor-pointer'>
-                            <p className='font-bold ml-3 '>Buy Now</p>
+                            <p className='font-bold ml-3 ' onClick={
+                                ()=>{
+                                    router.push(`/buy/${product.id}`)
+                                }
+                            }>Buy Now</p>
                         </div>
                     </div>
                 </div>

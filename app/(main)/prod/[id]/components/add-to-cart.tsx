@@ -5,11 +5,11 @@ import { useState } from 'react'
 import Link from 'next/link';
 import { addCartProduct } from '@/lib/action/setCart';
 import { isCart } from '@/lib/action/setCart';
-
 function AddToCart({ prodId }: {
     prodId: string
 }) {
     const [cart, SetCart] = useState(false);
+   
     const Addcart = async (prodId: string) => {
         const CartRes = await addCartProduct(prodId)
         if (CartRes.ok) {
@@ -55,7 +55,7 @@ function AddToCart({ prodId }: {
             )}
             {cart && (
                 <div className='mr-20 mt-70  gap-8 bg-lime-200 rounded-lg  w-40 p-4 backdrop-blur-lg shadow-md transition-transform duration-300 ease-in-out hover:bg-lime-300 cursor-pointer '>
-                    <p className='font-bold ml-3 '><Link href="/cart">Go To Cart</Link></p>
+                    <p className='font-bold ml-3 '><Link href={`/cart`}>Go To Cart</Link></p>
                 </div>
             )}
         </div>

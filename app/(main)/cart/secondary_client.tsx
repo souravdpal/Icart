@@ -1,27 +1,27 @@
 import React from 'react'
-import Cart from './cart'
 import { GetUserCart } from '@/lib/action/setCart'
+import Filt from './components/bridge_remover'
 
-interface product {
-  product_id : string,
-  amount : number,
+export interface product {
+  product_id: string
+  amount: number
 }
 
-const Sc =async () => {
-  const getres = async () => {
-    const cartData = await GetUserCart()
-    if (cartData.ok) {
-      return cartData.data
-    }
-    return []
-  }
-  const dataCart =await getres()
- 
+const Sc = async () => {
+  const cartData = await GetUserCart()
+  console.log('cartData:', JSON.stringify(cartData, null, 2)) // check your terminal, then remove
+
+  const raw: unknown = cartData.ok ? cartData.data : []
+  const rows: any[] = Array.isArray(raw) ? raw : raw ? [raw] : []
+
+  const dataCart: product[] = rows.map((r) => ({
+    product_id: String(r.product_id),
+    amount: Number(r.amount),
+  }))
+
   return (
     <div>
-      {dataCart.map((prod:product)=>{
-        return <Cart key={prod.product_id} product_id={prod.product_id} amount={prod.amount}/>
-      })}
+      <Filt products={dataCart} />
     </div>
   )
 }
