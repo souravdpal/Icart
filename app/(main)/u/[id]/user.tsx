@@ -12,9 +12,9 @@ interface UserProps {
 const User = ({ name, username, email, img }: UserProps) => {
     const [isEdit, setIsEdit] = useState<boolean>(false)
     function updatePopState(x: boolean) {
-        useEffect(() => {
+       
             setIsEdit(x)
-        }, [])
+       
     }
     return (
         <div>
@@ -26,18 +26,22 @@ const User = ({ name, username, email, img }: UserProps) => {
                     <p className='text-xs text-gray-400'>{email}</p>
 
                 </div>
-                <div className='' onClick={() => {
+                <div className='' 
+                onMouseEnter={()=>setIsEdit(true)}
+                
+                onClick={() => {
                     setIsEdit((prev) => !prev)
+                    
 
                 }}>
-                    <Edit />
+                    <Edit/>
 
 
                 </div>
 
             </div>
 
-            {isEdit && (<Editpop popUp={updatePopState} name={name} username={username} email={email}/>)}
+            {isEdit && (<Editpop popUp={updatePopState} name={name} username={username} email={email} img={img}/>)}
         </div>
     )
 }
