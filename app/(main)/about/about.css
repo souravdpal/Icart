@@ -1,0 +1,214 @@
+/* ---------- Tokens ---------- */
+#about-body {
+  --rose-100: #fde8e8;
+  --rose-200: #f6acac;
+  --rose-500: #d9626a;
+  --ink: #2b1d1d;
+  --ink-soft: #6b4f4f;
+  --glass-border: rgba(217, 184, 184, 0.45);
+
+  min-height: 100vh;
+  padding: clamp(1.5rem, 4vw, 4rem) clamp(1rem, 4vw, 2rem);
+  color: var(--ink);
+  background:
+    radial-gradient(60rem 30rem at 10% -10%, var(--rose-100), transparent 60%),
+    radial-gradient(50rem 28rem at 100% 40%, #fbe3d6, transparent 60%),
+    #fff8f6;
+}
+
+.about-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+/* ---------- Glass card (your original look, cleaned up) ---------- */
+.glass-card {
+  background: rgba(246, 172, 172, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 0 16px 6px rgba(255, 255, 255, 0.55);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+}
+
+.glass-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), transparent, rgba(255, 255, 255, 0.3));
+}
+
+/* ---------- Type ---------- */
+.about-title {
+  font-size: clamp(2.25rem, 6vw, 4rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.about-heading {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.about-text {
+  color: var(--ink-soft);
+  line-height: 1.7;
+  max-width: 62ch;
+}
+
+#highfont {
+  font-size: medium;
+  font-weight: bold;
+}
+
+/* ---------- Top ---------- */
+#master-top {
+  padding: clamp(2rem, 6vw, 4.5rem);
+  display: grid;
+  gap: 1.25rem;
+  min-height: 420px;
+  align-content: center;
+}
+
+.top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-block;
+  padding: 0.7rem 1.4rem;
+  border-radius: 999px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.btn-solid {
+  background: var(--rose-500);
+  color: #fff;
+}
+.btn-solid:hover {
+  background: #c24f58;
+}
+
+.btn-ghost {
+  border-color: var(--rose-500);
+  color: var(--rose-500);
+  background: rgba(255, 255, 255, 0.4);
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* ---------- Features ---------- */
+.features-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.feature-card {
+  padding: 1.75rem;
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+
+.feature-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.feature-card p {
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+/* ---------- Builder ---------- */
+.builder-card {
+  padding: clamp(1.75rem, 4vw, 3rem);
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 800px) {
+  .builder-card {
+    grid-template-columns: 1.2fr 1fr;
+    align-items: start;
+  }
+}
+
+.stack-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stack-list li {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--glass-border);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ---------- Bottom ---------- */
+.bottom-card {
+  padding: clamp(2rem, 5vw, 3.5rem);
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.about-footer {
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  padding-bottom: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}
