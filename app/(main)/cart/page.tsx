@@ -2,17 +2,20 @@ import { getCartTotal } from "@/lib/action/setCart";
 import Sc from "./secondary_client";
 import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/cookies/cookies_querries";
-import Link from "next/link";
+import Btn from "./components/btn";
+
 export default async function Page() {
   const res = await getCartTotal();
   const getuser = await getUserId()
   if (!getuser) {
     redirect('/login')
   }
-  const sId = crypto.randomUUID()
+  const sId = getuser.user_id
 
   const total = res.ok ? res.data.total : 0;
   const totalProd = res.ok ? res.data.totalProd : 0;
+
+  
 
   return (
     <div>
@@ -36,12 +39,8 @@ export default async function Page() {
               <span>₹{total.toLocaleString("en-IN")}</span>
             </div>
             <div className="mt-14 translate-x-50 flex justify-between  text-xl " >
-              <Link
-                href={`/cart/${getuser.user_id}/${totalProd}/methods/Sid/${sId}`}
-                className="cursor-pointer bg-yellow-300 p-2 rounded-2xl hover:bg-yellow-500"
-              >
-                Place order
-              </Link>
+             <Btn userid={getuser.user_id}/>
+
             </div>
           </div>
         </div>
