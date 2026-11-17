@@ -1,10 +1,12 @@
-import type { NextConfig } from "next";
+mport type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  devIndicators: false,
-  allowedDevOrigins: ["mowing-resistant-pamphlet.ngrok-free.dev"],
-
+devIndicators: false,
+experimental: {
+outputFileTracingIncludes: {
+"/": ["./node_modules/argon2/prebuilds//"],
+},
+},
 };
 
 export default nextConfig;
