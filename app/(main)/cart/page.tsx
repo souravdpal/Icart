@@ -3,7 +3,7 @@ import Sc from "./secondary_client";
 import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/cookies/cookies_querries";
 import Btn from "./components/btn";
-
+export const dynamic = "force-dynamic";
 export default async function Page() {
   const res = await getCartTotal();
   const getuser = await getUserId()

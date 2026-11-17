@@ -1,54 +1,52 @@
 'use server'
-import { error } from "console"
+
 import { sql } from "@/lib/sql/sql"
-import { create } from "domain"
 import { hashPassword, verifyPassword } from "../user/password"
 import { v4 as uuidv4 } from "uuid"
-import { use } from "react"
-import { Row } from "postgres"
 import { Setcookies } from "../cookies/cookies_setup"
 
-export async function auth_login(data: {
-  username: string,
+type LoginInput = {
+  username: string
   password: string
-}) {
-
-  if (!data.username || !data.password) {
-    return { success: false, error: "Username password cannot be empty" }
-  }
-
-  if (data.username == "" || data.password == "") {
-    return { success: false, error: "username password cannot be empty" }
-  }
-
-  let login_Server_data =await sql`select id,username,passwordhash from users where Username=${data.username}`
-  const user_data:Row = login_Server_data[0]
-  const password:string = data.password
-  const passwordHash:string = user_data.passwordhash
-  const user_id = user_data.id
-
-  let has_obj = {
-    passwordHash,
-    password
-  }
-
-  if (data.username ==user_data.username && await verifyPassword(has_obj)) {
-    if((await Setcookies(user_id)).isCookiesSet){
-      return { success: true }
-    }else{
-      return { success: false , error :"Error login try again" }
-    }
-    
-  } else {
-    return { success: false, error: "incorrect username or password" }
-  }
-
-
-
-
-
 }
 
+type AuthResult =
+  | { success: true }
+  | { success: false; error: string }
+
+export async function auth_login(data: LoginInput): Promise<AuthResult> {
+  if (!data?.username?.trim() || !data?.password) {
+    return { success: false, error: "Username and password cannot be empty." }
+  }
+
+  const rows = await sql`
+    select id, username, passwordhash
+    from users
+    where username = ${data.username.trim()}
+  `
+  const user = rows[0]
+
+  // Same message for unknown user and wrong password, so usernames can't be probed
+  if (!user) {
+    return { success: false, error: "Incorrect username or password." }
+  }
+
+  const valid = await verifyPassword({
+    passwordHash: user.passwordhash as string,
+    password: data.password,
+  })
+
+  if (!valid) {
+    return { success: false, error: "Incorrect username or password." }
+  }
+
+  const { isCookiesSet } = await Setcookies(user.id)
+  if (!isCookiesSet) {
+    return { success: false, error: "Error logging in, please try again." }
+  }
+
+  return { success: true }
+}
 
 type RegisterInput = {
   name: string
@@ -58,16 +56,12 @@ type RegisterInput = {
   confirmPassword: string
 }
 
-type RegisterResult =
-  | { success: true }
-  | { success: false; error: string }
-
-export async function register_user(data: RegisterInput): Promise<RegisterResult> {
+export async function register_user(data: RegisterInput): Promise<AuthResult> {
   if (!data?.name?.trim() || !data?.username?.trim() || !data?.email?.trim()) {
     return { success: false, error: "Please fill in all the fields." }
   }
 
-  if (data.password.length < 8) {
+  if (!data.password || data.password.length < 8) {
     return { success: false, error: "Password must be at least 8 characters." }
   }
 
@@ -95,11 +89,11 @@ export async function register_user(data: RegisterInput): Promise<RegisterResult
       )
     `
   } catch (e: any) {
-    if (e.code === "23505") {
-      if (e.constraint?.includes("email")) {
+    if (e?.code === "23505") {
+      if (e.constraint_name?.includes("email") || e.constraint?.includes("email")) {
         return { success: false, error: "That email is already registered." }
       }
-      if (e.constraint?.includes("username")) {
+      if (e.constraint_name?.includes("username") || e.constraint?.includes("username")) {
         return { success: false, error: "That username is taken." }
       }
       return { success: false, error: "That account already exists." }

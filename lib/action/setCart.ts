@@ -78,7 +78,7 @@ export async function isCart(prod_id: string): Promise<ReturnObj<boolean>> {
 }
 
 export async function GetUserCart(): Promise<ReturnObj<Row>> {
-    const userid = await getUserId(0)
+    const userid = await getUserId()
     if (!userid) {
         return {
             ok: false,

@@ -2,10 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
-  experimental: {
-    outputFileTracingIncludes: {
-      "/*": ["./node_modules/argon2/prebuilds/**/*"],
-    },
+  serverExternalPackages: ["argon2"],
+  outputFileTracingIncludes: {
+    "/*": ["./node_modules/argon2/prebuilds/**/*"],
   },
 };
 
