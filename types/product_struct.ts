@@ -16,3 +16,4 @@ export interface ProductInfo_struct {
   image: string | null;          // nullable in the DB
   affiliateUrl: string | null;   // nullable in the DB
 }
+

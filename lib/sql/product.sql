@@ -21,3 +21,6 @@ CREATE TABLE products (
     affiliate_url     TEXT,
     created_at        TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;

@@ -1,17 +1,11 @@
 'use server'
 import { sql } from "../sql/sql"
 import { getUserId } from "../cookies/cookies_querries"
-import { error } from "console"
-import { cookies } from "next/headers"
 import { Row } from "postgres"
 import { prisma } from "../sql/prisma"
-import { Rose, User } from "lucide-react"
 import { ProductInfo_struct } from "@/types/product_struct"
 import { toProduct } from "@/types/toProduct"
-import { CartItem } from "@/types/products"
-import { toCartItem, type CartJoinRow } from "@/types/toCartItem"
-import Product from "@/app/(main)/prod/[id]/components/product-card"
-import { stat } from "fs"
+
 type ReturnObj<T> =
     | { ok: true; data: T, status: number }
     | { ok: false; error: string, status: number }
@@ -255,3 +249,4 @@ export async function RemoveCartItem(id: string) {
 
 
 }
+

@@ -1,27 +1,25 @@
 import React from 'react'
-import { Truck, Banknote,Package,CreditCardPlus } from 'lucide-react'
+import { Truck, Banknote, Package, CreditCardPlus } from 'lucide-react'
+
+const PERKS = [
+  { icon: Truck, label: 'Fast delivery' },
+  { icon: Banknote, label: 'Cash on delivery' },
+  { icon: Package, label: '7-day delivery' },
+  { icon: CreditCardPlus, label: 'Save more with offers' },
+]
 
 export default function CenterSection() {
-    return (
-        <div className='cursor-pointer'>
-            <div className="flex gap-7">
-                <div className='top-two flex bg-white  gap-3 translate-y-15 p-2 items-center rounded-xl w-85 translate-x-2 shadow-md backdrop-blur-md'>
-                    <Truck className='fill-blue-600 translate-x-8' /> <p className='font-semibold translate-x-8'>Fast Delivery</p>
-                </div>
-                <div className='top-two flex bg-white  gap-3 translate-y-15 p-2 items-center rounded-xl w-85 translate-x-2 shadow-md backdrop-blur-md'>
-                    <Banknote className='fill-blue-600 translate-x-8' /> <p className='font-semibold translate-x-8'>Cash On Delivery</p>
-                </div>
-            </div>
-            <div className="flex gap-7">
-                <div className='top-two flex bg-white  gap-3 translate-y-20 p-2 items-center rounded-xl w-85 translate-x-2 shadow-md backdrop-blur-md'>
-                    <Package className='fill-blue-600 translate-x-8' /> <p className='font-semibold translate-x-8'>7 Days Delivery</p>
-                </div>
-                <div className='top-two flex bg-white  gap-3 translate-y-20 p-2 items-center rounded-xl w-85 translate-x-2 shadow-md backdrop-blur-md'>
-                    <CreditCardPlus className='fill-blue-600 translate-x-8' /> <p className='font-semibold translate-x-8'>Save More</p>
-                </div>
-            </div>
-        </div>
-    )
+  return (
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {PERKS.map(({ icon: Icon, label }) => (
+        <li
+          key={label}
+          className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200"
+        >
+          <Icon className="size-5 shrink-0 text-sky-600" aria-hidden="true" />
+          <span className="font-medium text-slate-800">{label}</span>
+        </li>
+      ))}
+    </ul>
+  )
 }
-
-

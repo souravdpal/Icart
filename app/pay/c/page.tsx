@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
+import PaymentClient from "./checkout";
 
 interface PageProps {
     searchParams: Promise<{
@@ -13,7 +15,6 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     const params = await searchParams;
     const { userid, exp, sig } = params;
 
-    // 1. ERROR: MISSING PARAMETERS
     if (!userid || !exp || !sig) {
         return (
             <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -28,8 +29,8 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
                         This link is missing required verification parameters. Please return to your cart and try again.
                     </p>
                     <div className="mt-8">
-                        <Link 
-                            href="/cart" 
+                        <Link
+                            href="/cart"
                             className="inline-flex items-center justify-center w-full px-5 py-3 rounded-xl bg-slate-900 text-white font-medium hover:bg-slate-800 transition-all shadow-sm"
                         >
                             Return to Cart
@@ -40,7 +41,6 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
         );
     }
 
-    // 2. ERROR: EXPIRED LINK
     const currentTime = Math.floor(Date.now() / 1000);
     if (currentTime > Number(exp)) {
         return (
@@ -56,8 +56,8 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
                         For your security, checkout links expire after a short period. Please generate a fresh link from your cart.
                     </p>
                     <div className="mt-8">
-                        <Link 
-                            href="/cart" 
+                        <Link
+                            href="/cart"
                             className="inline-flex items-center justify-center w-full px-5 py-3 rounded-xl bg-slate-900 text-white font-medium hover:bg-slate-800 transition-all shadow-sm"
                         >
                             Back to Cart
@@ -68,13 +68,12 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
         );
     }
 
-    // 3. ERROR: SIGNATURE MISMATCH (TAMPERED)
     const api_salt = process.env.api_salt_key || "souravilovecoding";
     const payload = `${userid}.${exp}`;
-    const expectedSig = crypto.createHmac('sha256', api_salt).update(payload).digest('hex');
+    const expectedSig = crypto.createHmac("sha256", api_salt).update(payload).digest("hex");
 
-    const sigBuffer = Buffer.from(sig, 'hex');
-    const expectedBuffer = Buffer.from(expectedSig, 'hex');
+    const sigBuffer = Buffer.from(sig, "hex");
+    const expectedBuffer = Buffer.from(expectedSig, "hex");
 
     if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
         return (
@@ -90,8 +89,8 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
                         Security verification failed. This link signature is invalid or has been modified.
                     </p>
                     <div className="mt-8">
-                        <Link 
-                            href="/cart" 
+                        <Link
+                            href="/cart"
                             className="inline-flex items-center justify-center w-full px-5 py-3 rounded-xl bg-slate-900 text-white font-medium hover:bg-slate-800 transition-all shadow-sm"
                         >
                             Return to Cart
@@ -102,25 +101,43 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
         );
     }
 
-    // 4. SUCCESS: VERIFIED (Ready for your code)
-    return (
-        <main className="min-h-screen bg-slate-50 py-12 px-4">
-            <div className="max-w-3xl mx-auto">
-                <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
-                    <div className="flex items-center justify-between pb-6 border-b border-slate-100 mb-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-900">Secure Checkout</h1>
-                            <p className="text-slate-500 text-sm mt-0.5">Verified User ID: {userid}</p>
-                        </div>
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-100">
-                            ● Secure Session Active
-                        </span>
-                    </div>
+    // Random dummy user & cart data (replace with Prisma queries when ready)
+    const dummyUser = {
+        name: "Aarav Sharma",
+        email: "aarav.sharma@example.com",
+        phone: "+91 98765 43210",
+        address: "B-42, Sector 18, Noida, UP 201301",
+    };
 
-                    <div className="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center bg-slate-50/50">
-                        <p className="text-slate-400 font-medium">Your payment form and cart summary go here...</p>
+    const dummyItems = [
+        { id: "prod_101", title: "Wireless Mechanical Keyboard", price: 2499, quantity: 1 },
+        { id: "prod_102", title: "USB-C Ergonomic Mouse", price: 1299, quantity: 2 },
+    ];
+
+    return (
+        <main className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6">
+            <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 p-6 sm:p-8 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-100 gap-4">
+                    <div>
+                        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                            <ShieldCheck className="size-6 text-cyan-600" /> Secure Checkout
+                        </h1>
+                        <p className="text-slate-500 text-sm mt-1">
+                            Verified User ID: <span className="font-mono text-slate-700">{userid}</span>
+                        </p>
                     </div>
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Secure Session Active
+                    </span>
                 </div>
+
+                <PaymentClient
+                    userid={userid}
+                    exp={exp}
+                    sig={sig}
+                    user={dummyUser}
+                    initialItems={dummyItems}
+                />
             </div>
         </main>
     );

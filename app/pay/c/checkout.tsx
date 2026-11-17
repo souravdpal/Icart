@@ -1,138 +1,307 @@
-import crypto from "crypto";
-import Link from "next/link";
+"use client";
 
-interface PageProps {
-    searchParams: Promise<{
-        userid?: string;
-        exp?: string;
-        sig?: string;
-    }>;
+import { useState } from "react";
+import {
+    CreditCard,
+    Smartphone,
+    Banknote,
+    Lock,
+    CheckCircle2,
+    ShoppingBag,
+    Plus,
+    Minus,
+    Trash2,
+    User,
+} from "lucide-react";
+
+export interface UserData {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
 }
 
-export default async function CheckoutPage({ searchParams }: PageProps) {
-    const params = await searchParams;
-    const { userid, exp, sig } = params;
+export interface CartItem {
+    id: string;
+    title: string;
+    price: number;
+    quantity: number;
+}
 
-    // ==========================================
-    // 1. ERROR: MISSING PARAMETERS
-    // ==========================================
-    if (!userid || !exp || !sig) {
-        return (
-            <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100 text-center">
-                    <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-inner">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Invalid Checkout Link</h1>
-                    <p className="text-slate-500 text-sm mt-2 leading-relaxed">
-                        This link is missing required verification parameters. Please return to your cart and try again.
-                    </p>
-                    <div className="mt-8">
-                        <Link 
-                            href="/cart" 
-                            className="inline-flex items-center justify-center w-full px-5 py-3 rounded-xl bg-slate-900 text-white font-medium hover:bg-slate-800 transition-all shadow-sm"
-                        >
-                            Return to Cart
-                        </Link>
-                    </div>
-                </div>
-            </main>
+interface PaymentClientProps {
+    userid: string;
+    exp: string;
+    sig: string;
+    user: UserData;
+    initialItems: CartItem[];
+}
+
+export default function PaymentClient({
+    userid,
+    exp,
+    sig,
+    user,
+    initialItems,
+}: PaymentClientProps) {
+    const [userInfo, setUserInfo] = useState<UserData>(user);
+    const [items, setItems] = useState<CartItem[]>(initialItems);
+    const [method, setMethod] = useState<"CARD" | "UPI" | "COD">("CARD");
+    const [card, setCard] = useState({ cardNumber: "", expiry: "", cvv: "" });
+    const [upiId, setUpiId] = useState("");
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [result, setResult] = useState<{ ok: boolean; msg: string; txnId?: string } | null>(null);
+
+    // Modify user/billing fields
+    const updateUser = (field: keyof UserData, value: string) => {
+        setUserInfo((prev) => ({ ...prev, [field]: value }));
+    };
+
+    // Modify cart item quantity or remove
+    const updateQty = (id: string, delta: number) => {
+        setItems((prev) =>
+            prev
+                .map((i) => (i.id === id ? { ...i, quantity: i.quantity + delta } : i))
+                .filter((i) => i.quantity > 0)
         );
-    }
+    };
 
-    // ==========================================
-    // 2. ERROR: EXPIRED LINK
-    // ==========================================
-    const currentTime = Math.floor(Date.now() / 1000);
-    if (currentTime > Number(exp)) {
+    const removeItem = (id: string) => {
+        setItems((prev) => prev.filter((i) => i.id !== id));
+    };
+
+    const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const shipping = subtotal > 0 ? 99 : 0;
+    const total = subtotal + shipping;
+
+    // Send modified data to backend
+    const handlePay = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (items.length === 0 || isProcessing) return;
+
+        setIsProcessing(true);
+        setResult(null);
+
+        try {
+            const res = await fetch("/api/payment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userid,
+                    exp,
+                    sig,
+                    user: userInfo,
+                    paymentMethod: method,
+                    paymentDetails:
+                        method === "CARD"
+                            ? { last4: card.cardNumber.replace(/\s/g, "").slice(-4), expiry: card.expiry }
+                            : method === "UPI"
+                            ? { upiId }
+                            : { cod: true },
+                    items,
+                }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Payment failed");
+
+            setResult({ ok: true, msg: "Payment confirmed!", txnId: data.transactionId });
+        } catch (err: any) {
+            setResult({ ok: false, msg: err.message || "Something went wrong" });
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    if (result?.ok) {
         return (
-            <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100 text-center">
-                    <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-inner">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Session Timed Out</h1>
-                    <p className="text-slate-500 text-sm mt-2 leading-relaxed">
-                        For your security, checkout links expire after a short period. Please generate a fresh link from your cart.
-                    </p>
-                    <div className="mt-8">
-                        <Link 
-                            href="/cart" 
-                            className="inline-flex items-center justify-center w-full px-5 py-3 rounded-xl bg-slate-900 text-white font-medium hover:bg-slate-800 transition-all shadow-sm"
-                        >
-                            Back to Cart
-                        </Link>
-                    </div>
-                </div>
-            </main>
-        );
-    }
-
-    // ==========================================
-    // 3. ERROR: SIGNATURE MISMATCH (TAMPERED)
-    // ==========================================
-    const api_salt = process.env.api_salt_key || "souravilovecoding";
-    const payload = `${userid}.${exp}`;
-    const expectedSig = crypto.createHmac('sha256', api_salt).update(payload).digest('hex');
-
-    const sigBuffer = Buffer.from(sig, 'hex');
-    const expectedBuffer = Buffer.from(expectedSig, 'hex');
-
-    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
-        return (
-            <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100 text-center">
-                    <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-inner">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                    </div>
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Access Denied</h1>
-                    <p className="text-slate-500 text-sm mt-2 leading-relaxed">
-                        Security verification failed. This link signature is invalid or has been modified.
-                    </p>
-                    <div className="mt-8">
-                        <Link 
-                            href="/cart" 
-                            className="inline-flex items-center justify-center w-full px-5 py-3 rounded-xl bg-slate-900 text-white font-medium hover:bg-slate-800 transition-all shadow-sm"
-                        >
-                            Return to Cart
-                        </Link>
-                    </div>
-                </div>
-            </main>
-        );
-    }
-
-    // ==========================================
-    // 4. SUCCESS: VERIFIED (Ready for your code)
-    // ==========================================
-    return (
-        <main className="min-h-screen bg-slate-50 py-12 px-4">
-            <div className="max-w-3xl mx-auto">
-                <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
-                    <div className="flex items-center justify-between pb-6 border-b border-slate-100 mb-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-900">Secure Checkout</h1>
-                            <p className="text-slate-500 text-sm mt-0.5">Verified User ID: {userid}</p>
-                        </div>
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-100">
-                            ● Secure Session Active
-                        </span>
-                    </div>
-
-                    {/* ========================================== */}
-                    {/* TODO: Write your payment components here   */}
-                    {/* ========================================== */}
-                    <div className="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center bg-slate-50/50">
-                        <p className="text-slate-400 font-medium">Your payment form and cart summary go here...</p>
-                    </div>
-                </div>
+            <div className="py-10 text-center space-y-3">
+                <CheckCircle2 className="size-12 text-emerald-600 mx-auto" />
+                <h2 className="text-xl font-bold text-slate-900">{result.msg}</h2>
+                <p className="text-xs font-mono bg-slate-100 inline-block px-3 py-1.5 rounded-lg text-slate-700">
+                    Transaction ID: {result.txnId}
+                </p>
             </div>
-        </main>
+        );
+    }
+
+    return (
+        <form onSubmit={handlePay} className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-2">
+            {/* Left: User Details & Payment Method */}
+            <div className="lg:col-span-7 space-y-6">
+                <div className="space-y-3">
+                    <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <User className="size-4 text-cyan-600" /> Customer Details
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input
+                            type="text"
+                            value={userInfo.name}
+                            onChange={(e) => updateUser("name", e.target.value)}
+                            placeholder="Full Name"
+                            className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-cyan-500"
+                        />
+                        <input
+                            type="email"
+                            value={userInfo.email}
+                            onChange={(e) => updateUser("email", e.target.value)}
+                            placeholder="Email"
+                            className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-cyan-500"
+                        />
+                        <input
+                            type="text"
+                            value={userInfo.phone}
+                            onChange={(e) => updateUser("phone", e.target.value)}
+                            placeholder="Phone"
+                            className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-cyan-500"
+                        />
+                        <input
+                            type="text"
+                            value={userInfo.address}
+                            onChange={(e) => updateUser("address", e.target.value)}
+                            placeholder="Delivery Address"
+                            className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-cyan-500"
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <h2 className="text-sm font-bold text-slate-900">Payment Method</h2>
+                    <div className="grid grid-cols-3 gap-2.5">
+                        {[
+                            { id: "CARD", label: "Card", icon: CreditCard },
+                            { id: "UPI", label: "UPI", icon: Smartphone },
+                            { id: "COD", label: "Cash", icon: Banknote },
+                        ].map(({ id, label, icon: Icon }) => (
+                            <button
+                                key={id}
+                                type="button"
+                                onClick={() => setMethod(id as "CARD" | "UPI" | "COD")}
+                                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                                    method === id
+                                        ? "border-cyan-600 bg-cyan-50/60 text-cyan-700 ring-1 ring-cyan-600"
+                                        : "border-slate-200 text-slate-600 hover:border-slate-300"
+                                }`}
+                            >
+                                <Icon className="size-4" />
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {method === "CARD" && (
+                        <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                            <input
+                                type="text"
+                                required
+                                placeholder="Card Number (e.g. 4532 1111 2222 3333)"
+                                value={card.cardNumber}
+                                onChange={(e) =>
+                                    setCard((p) => ({
+                                        ...p,
+                                        cardNumber: e.target.value.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 "),
+                                    }))
+                                }
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-mono outline-none focus:border-cyan-500"
+                            />
+                            <div className="grid grid-cols-2 gap-3">
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="MM/YY"
+                                    value={card.expiry}
+                                    onChange={(e) => setCard((p) => ({ ...p, expiry: e.target.value.slice(0, 5) }))}
+                                    className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-mono outline-none focus:border-cyan-500"
+                                />
+                                <input
+                                    type="password"
+                                    required
+                                    placeholder="CVV"
+                                    value={card.cvv}
+                                    onChange={(e) => setCard((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                                    className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-mono outline-none focus:border-cyan-500"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {method === "UPI" && (
+                        <input
+                            type="text"
+                            required
+                            placeholder="yourname@okaxis"
+                            value={upiId}
+                            onChange={(e) => setUpiId(e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-cyan-500"
+                        />
+                    )}
+
+                    {method === "COD" && (
+                        <p className="text-xs text-slate-600 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                            Pay with cash or UPI QR at delivery.
+                        </p>
+                    )}
+                </div>
+
+                {result && !result.ok && (
+                    <p className="text-xs font-medium text-rose-600 bg-rose-50 p-3 rounded-xl">{result.msg}</p>
+                )}
+            </div>
+
+            {/* Right: Order Summary */}
+            <div className="lg:col-span-5 bg-slate-50 rounded-2xl border border-slate-200/80 p-5 flex flex-col justify-between space-y-5">
+                <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-3">
+                        <ShoppingBag className="size-4 text-slate-600" /> Order Summary
+                    </h3>
+
+                    <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+                        {items.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between text-sm gap-2">
+                                <div className="min-w-0">
+                                    <p className="font-medium text-slate-800 truncate">{item.title}</p>
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <button type="button" onClick={() => updateQty(item.id, -1)} className="p-0.5 rounded bg-white border border-slate-200">
+                                            <Minus className="size-3" />
+                                        </button>
+                                        <span className="text-xs w-4 text-center">{item.quantity}</span>
+                                        <button type="button" onClick={() => updateQty(item.id, 1)} className="p-0.5 rounded bg-white border border-slate-200">
+                                            <Plus className="size-3" />
+                                        </button>
+                                        <button type="button" onClick={() => removeItem(item.id)} className="ml-1 text-rose-500">
+                                            <Trash2 className="size-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <span className="font-semibold text-slate-900">₹{item.price * item.quantity}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="border-t border-slate-200 pt-3 space-y-1.5 text-sm text-slate-600">
+                        <div className="flex justify-between">
+                            <span>Subtotal</span>
+                            <span className="font-medium text-slate-900">₹{subtotal}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Shipping</span>
+                            <span className="font-medium text-slate-900">₹{shipping}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-slate-200 pt-2.5 text-base font-bold text-slate-900">
+                            <span>Total</span>
+                            <span className="text-cyan-600">₹{total}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={items.length === 0 || isProcessing}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold shadow-md hover:opacity-95 disabled:opacity-50 transition-all"
+                >
+                    <Lock className="size-4" />
+                    <span>{isProcessing ? "Processing..." : `Pay ₹${total}`}</span>
+                </button>
+            </div>
+        </form>
     );
 }
