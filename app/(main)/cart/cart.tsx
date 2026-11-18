@@ -27,11 +27,7 @@ const Cart = ({ product_id, amount, onRemove }: CartProps) => {
 
   if (!prods) return null
 
-  return (
-    <div className="flex flex-col gap-3 p-4 bg-gray-300">
-      <Card {...prods} onRemove={() => onRemove(product_id)} />
-    </div>
-  )
+  return <Card {...prods} onRemove={() => onRemove(product_id)} />
 }
 
 export default Cart

@@ -1,4 +1,5 @@
 "use client";
+import { Minus, Plus } from "lucide-react";
 
 interface NumberInputProps {
   value: number;
@@ -17,23 +18,39 @@ export default function NumberInput({
 }: NumberInputProps) {
   const clamp = (n: number) => Math.min(max, Math.max(min, n));
 
+  const btn =
+    "flex size-8 items-center justify-center rounded-full bg-white text-slate-800 shadow-sm transition hover:bg-slate-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40";
+
   return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-      <button type="button" onClick={() => onChange(clamp(value - step))}>
-        −
+    <div className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        aria-label="Decrease quantity"
+        className={btn}
+        disabled={value <= min}
+        onClick={() => onChange(clamp(value - step))}
+      >
+        <Minus className="size-4" />
       </button>
 
       <input
         type="number"
+        inputMode="numeric"
         value={value}
         min={min}
         max={max}
-        onChange={(e) => onChange(clamp(Number(e.target.value) || 0))}
-        style={{ width: 60, textAlign: "center" }}
+        onChange={(e) => onChange(clamp(Number(e.target.value) || min))}
+        className="w-10 bg-transparent text-center font-bold text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
 
-      <button type="button" onClick={() => onChange(clamp(value + step))}>
-        +
+      <button
+        type="button"
+        aria-label="Increase quantity"
+        className={btn}
+        disabled={value >= max}
+        onClick={() => onChange(clamp(value + step))}
+      >
+        <Plus className="size-4" />
       </button>
     </div>
   );

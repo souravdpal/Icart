@@ -19,7 +19,7 @@ const Filt = ({ products }: ProductProps) => {
   }
 
   return (
-    <div>
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-3 py-4 sm:px-4">
       {prod.map((item) => (
         <Cart
           key={item.product_id}

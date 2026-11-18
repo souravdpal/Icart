@@ -39,8 +39,8 @@ const Product = (product: product_schema) => {
 
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-100 to-zinc-200">
-      {/* pt-28 keeps content clear of the sticky navbar */}
-      <main className="mx-auto max-w-6xl px-4 pb-16 pt-28 sm:px-6">
+      {/* pt-28 keeps content clear of the sticky navbar; pb-28 on mobile clears the action bar */}
+      <main className="mx-auto max-w-6xl px-4 pb-28 pt-28 sm:px-6 sm:pb-16">
         <div className="grid gap-8 md:grid-cols-2 lg:gap-12">
           {/* Image */}
           <div className="md:sticky md:top-28 md:self-start">
@@ -67,7 +67,7 @@ const Product = (product: product_schema) => {
           </div>
 
           {/* Details */}
-          <div className="flex flex-col gap-6">
+          <div className="flex min-w-0 flex-col gap-6">
             <div className="space-y-3">
               <p className="text-slate-500">{product.brand}</p>
               <h1 className="text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl">
@@ -145,19 +145,19 @@ const Product = (product: product_schema) => {
 
             <CenterSection />
 
-            {/* Actions */}
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="sm:flex-1 [&>*]:w-full">
-                <AddToCart {...{ prodId: product.id }} />
+            {/* Actions: fixed bottom bar on mobile, inline on sm+ */}
+            <div className="max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:border-t max-sm:border-slate-200 max-sm:bg-white/90 max-sm:p-3 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:backdrop-blur-md">
+              <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3">
+                <AddToCart prodId={product.id} disabled={soldOut} />
+                <button
+                  type="button"
+                  disabled={soldOut}
+                  onClick={() => router.push(`/buy/${product.id}`)}
+                  className="h-12 rounded-xl bg-yellow-400 px-4 text-sm font-bold text-black shadow-sm transition hover:bg-amber-300 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 sm:text-base"
+                >
+                  Buy now
+                </button>
               </div>
-              <button
-                type="button"
-                disabled={soldOut}
-                onClick={() => router.push(`/buy/${product.id}`)}
-                className="h-1/6  translate-y-70 rounded-xl bg-yellow-400 px-6 py-3.5 font-bold text-black shadow-sm transition-colors hover:bg-amber-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 sm:flex-1"
-              >
-                Buy now
-              </button>
             </div>
           </div>
         </div>

@@ -1,64 +1,62 @@
 'use client'
 
-import {useEffect } from 'react'
-import { useState } from 'react'
-import Link from 'next/link';
-import { addCartProduct } from '@/lib/action/setCart';
-import { isCart } from '@/lib/action/setCart';
-function AddToCart({ prodId }: {
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { ShoppingCart, Check } from 'lucide-react'
+import { addCartProduct, isCart } from '@/lib/action/setCart'
+
+type Props = {
     prodId: string
-}) {
-    const [cart, SetCart] = useState(false);
-   
-    const Addcart = async (prodId: string) => {
-        const CartRes = await addCartProduct(prodId)
-        if (CartRes.ok) {
-            SetCart(true)
-        }
+    disabled?: boolean
+}
 
-    }
-    const isCartAdd = async (prodId: string): Promise<boolean> => {
-        const inCart = await isCart(prodId)
-        if (inCart.ok) {
-            return inCart.data
-        } else {
-            return inCart.ok
-        }
-
-
-
-    }
+function AddToCart({ prodId, disabled = false }: Props) {
+    const [inCart, setInCart] = useState(false)
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        const getct = async () => {
-            const getcart = await isCartAdd(prodId)
-            SetCart(getcart)
+        let cancelled = false
+        ;(async () => {
+            const res = await isCart(prodId)
+            if (!cancelled) setInCart(res.ok ? res.data : false)
+        })()
+        return () => {
+            cancelled = true
         }
-        getct()
-
-
     }, [prodId])
 
+    const handleAdd = async () => {
+        if (loading || disabled) return
+        setLoading(true)
+        const res = await addCartProduct(prodId)
+        if (res.ok) setInCart(true)
+        setLoading(false)
+    }
 
+    // same height / radius as the Buy now button so the pair lines up
+    const base =
+        'inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-slate-900 shadow-sm transition active:scale-[0.98] sm:text-base'
 
+    if (inCart) {
+        return (
+            <Link href="/cart" className={`${base} bg-lime-300 hover:bg-lime-400`}>
+                <Check className="size-5 shrink-0" />
+                Go to cart
+            </Link>
+        )
+    }
 
     return (
-        <div>
-            {!cart && (
-                <div className='mr-20 mt-70  gap-8 bg-lime-200 rounded-lg  w-40 p-4 backdrop-blur-lg shadow-md transition-transform duration-300 ease-in-out hover:bg-lime-300 cursor-pointer '>
-                    <p onClick={()=>Addcart(prodId) }
-
-
-
-                        className='font-bold ml-3 '>Add To Cart</p>
-                </div>
-            )}
-            {cart && (
-                <div className='mr-20 mt-70  gap-8 bg-lime-200 rounded-lg  w-40 p-4 backdrop-blur-lg shadow-md transition-transform duration-300 ease-in-out hover:bg-lime-300 cursor-pointer '>
-                    <p className='font-bold ml-3 '><Link href={`/cart`}>Go To Cart</Link></p>
-                </div>
-            )}
-        </div>
+        <button
+            type="button"
+            onClick={handleAdd}
+            disabled={loading || disabled}
+            className={`${base} bg-lime-200 hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60`}
+        >
+            <ShoppingCart className="size-5 shrink-0" />
+            {loading ? 'Adding…' : 'Add to cart'}
+        </button>
     )
 }
+
 export default AddToCart

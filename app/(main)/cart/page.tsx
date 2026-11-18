@@ -1,50 +1,47 @@
-import { getCartTotal } from "@/lib/action/setCart";
-import Sc from "./secondary_client";
-import { redirect } from "next/navigation";
-import { getUserId } from "@/lib/cookies/cookies_querries";
-import Btn from "./components/btn";
-export const dynamic = "force-dynamic";
+import { getCartTotal } from '@/lib/action/setCart'
+import Sc from './secondary_client'
+import { redirect } from 'next/navigation'
+import { getUserId } from '@/lib/cookies/cookies_querries'
+import Btn from './components/btn'
+
+export const dynamic = 'force-dynamic'
+
 export default async function Page() {
-  const res = await getCartTotal();
   const getuser = await getUserId()
   if (!getuser) {
     redirect('/login')
   }
-  const sId = getuser.user_id
 
-  const total = res.ok ? res.data.total : 0;
-  const totalProd = res.ok ? res.data.totalProd : 0;
-
-  
+  const res = await getCartTotal()
+  const total = res.ok ? res.data.total : 0
+  const totalProd = res.ok ? res.data.totalProd : 0
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-5xl px-4 pb-10 sm:px-6">
       <Sc />
 
-      <div className="flex flex-col items-center gap-6" id="details">
-        <div className="mb-4 rounded-full bg-slate-100 px-6 py-2 font-semibold shadow-md">
+      <section id="details" className="mt-8 flex flex-col items-center gap-6">
+        <div className="rounded-full bg-slate-100 px-6 py-2 font-semibold shadow-md">
           Cart Details
         </div>
 
-        {/* Cards row */}
-        <div className="flex w-full max-w-xl flex-col gap-6 md:flex-row">
-          {/* Card 1 */}
-          <div className="flex-1 rounded-xl border border-white/40 bg-white/20 p-6 text-black shadow-lg backdrop-blur-md">
-            <div className="flex justify-between font-mono text-xl font-bold">
-              <span>Items:</span>
-              <span>{totalProd}</span>
+        <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white/70 p-5 text-slate-900 shadow-lg backdrop-blur-md sm:p-6">
+          <dl className="space-y-4 font-mono">
+            <div className="flex items-center justify-between gap-4 text-base font-bold sm:text-xl">
+              <dt>Items:</dt>
+              <dd>{totalProd}</dd>
             </div>
-            <div className="mt-10 flex justify-between font-mono text-xl font-bold">
-              <span>Total amount:</span>
-              <span>₹{total.toLocaleString("en-IN")}</span>
+            <div className="flex items-center justify-between gap-4 border-t border-slate-200 pt-4 text-base font-bold sm:text-xl">
+              <dt>Total amount:</dt>
+              <dd>₹{total.toLocaleString('en-IN')}</dd>
             </div>
-            <div className="mt-14 translate-x-50 flex justify-between  text-xl " >
-             <Btn userid={getuser.user_id}/>
+          </dl>
 
-            </div>
+          <div className="mt-6 flex justify-stretch sm:justify-end [&>*]:w-full sm:[&>*]:w-auto">
+            <Btn userid={getuser.user_id} />
           </div>
         </div>
-      </div>
+      </section>
     </div>
-  );
+  )
 }
