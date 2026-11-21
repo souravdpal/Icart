@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { MailCheck, X } from 'lucide-react'
+import { isAlreadyUser } from '@/lib/action/user'
 
 export interface ProfileData {
   name: string
@@ -12,14 +13,24 @@ export interface ProfileData {
   area: string
 }
 
+export interface SaveResult {
+  ok: boolean
+  error?: string
+}
+
 interface EditpopProps {
   popUp: (x: boolean) => void
   name: string
   email: string
   username: string
   img: string
-  onSave?: (data: ProfileData) => void
+  onSave?: (data: ProfileData) => Promise<SaveResult>
 }
+
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'error'
+
+// 3-20 chars: letters, numbers, underscore. Adjust to your own rules.
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/
 
 const inputClass =
   'w-full rounded-xl border border-zinc-200 bg-zinc-100/60 px-4 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800/60'
@@ -34,6 +45,10 @@ const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) =>
   const [landmark, setLandmark] = useState<string>('')
   const [area, setArea] = useState<string>('')
 
+  const [error, setError] = useState<string>('')
+  const [saving, setSaving] = useState<boolean>(false)
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle')
+
   // Close with the Escape key.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -43,10 +58,72 @@ const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) =>
     return () => window.removeEventListener('keydown', onKey)
   }, [popUp])
 
-  function handleSubmit(e: React.FormEvent) {
+  // Live username check (debounced)
+  useEffect(() => {
+    const value = Username.trim()
+
+    // Unchanged: nothing to check
+    if (value === username) {
+      setUsernameStatus('idle')
+      return
+    }
+
+    // Bad format: no server call needed
+    if (!USERNAME_RE.test(value)) {
+      setUsernameStatus(value === '' ? 'idle' : 'invalid')
+      return
+    }
+
+    setUsernameStatus('checking')
+    let cancelled = false
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await isAlreadyUser(value)
+        if (cancelled) return
+        if (res.status === 500) setUsernameStatus('error')
+        else setUsernameStatus(res.ok ? 'taken' : 'available') // ok:true = user exists
+      } catch {
+        if (!cancelled) setUsernameStatus('error')
+      }
+    }, 400)
+
+    // Runs when the user types again: drop the pending timer, ignore the old result
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [Username, username])
+
+  const usernameBlocked =
+    usernameStatus === 'taken' ||
+    usernameStatus === 'invalid' ||
+    usernameStatus === 'checking'
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    onSave?.({ name: Name, username: Username, email: Email, street, landmark, area })
-    popUp(false)
+    if (!onSave || usernameBlocked) return
+    setError('')
+    setSaving(true)
+    try {
+      const res = await onSave({
+        name: Name,
+        username: Username,
+        email: Email,
+        street,
+        landmark,
+        area,
+      })
+      if (res.ok) {
+        popUp(false)
+      } else {
+        setError(res.error ?? 'Failed to save changes.')
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -100,6 +177,7 @@ const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) =>
             </div>
           </div>
 
+          {/* Username */}
           <div>
             <label htmlFor="edit-username" className={labelClass}>
               Username
@@ -111,9 +189,34 @@ const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) =>
                 type="text"
                 value={Username}
                 onChange={(e) => setUsername(e.target.value)}
-                className={inputClass}
+                autoComplete="off"
+                className={`${inputClass} ${
+                  usernameStatus === 'taken' || usernameStatus === 'invalid'
+                    ? 'border-red-500 focus:ring-red-500'
+                    : usernameStatus === 'available'
+                      ? 'border-emerald-500 focus:ring-emerald-500'
+                      : ''
+                }`}
               />
             </div>
+            {usernameStatus !== 'idle' && (
+              <p
+                role="status"
+                className={`mt-1 text-sm ${
+                  usernameStatus === 'available'
+                    ? 'text-emerald-600'
+                    : usernameStatus === 'checking'
+                      ? 'text-zinc-500'
+                      : 'text-red-600'
+                }`}
+              >
+                {usernameStatus === 'checking' && 'Checking availability...'}
+                {usernameStatus === 'available' && '✓ Username is available'}
+                {usernameStatus === 'taken' && '✗ Username is already taken'}
+                {usernameStatus === 'invalid' && 'Use 3-20 letters, numbers, or underscores'}
+                {usernameStatus === 'error' && "Couldn't check right now. Try again."}
+              </p>
+            )}
           </div>
 
           {/* Email */}
@@ -187,6 +290,12 @@ const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) =>
             </div>
           </fieldset>
 
+          {error && (
+            <p role="alert" className="rounded-xl bg-red-100 px-4 py-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+
           {/* Actions */}
           <div className="flex gap-3">
             <button
@@ -198,9 +307,10 @@ const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) =>
             </button>
             <button
               type="submit"
-              className="w-full rounded-2xl bg-blue-600 py-3 font-medium text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-700"
+              disabled={saving || usernameBlocked}
+              className="w-full rounded-2xl bg-blue-600 py-3 font-medium text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Save changes
+              {saving ? 'Saving...' : 'Save changes'}
             </button>
           </div>
         </form>

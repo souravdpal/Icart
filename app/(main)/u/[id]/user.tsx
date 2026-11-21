@@ -1,8 +1,10 @@
 'use client'
 import { Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Editpop, { ProfileData } from './components/edit-popup'
 import Buttons from './components/buttons'
+import { isAlreadyUser, UpdateUserData } from '@/lib/action/user'
 
 interface UserProps {
   name: string
@@ -12,17 +14,50 @@ interface UserProps {
 }
 
 const User = ({ name, username, email, img }: UserProps) => {
+  const router = useRouter()
   const [isEdit, setIsEdit] = useState<boolean>(false)
+  const [error, setError] = useState<string>('')
 
-  // Other pages read the username from localStorage, so keep this.
   useEffect(() => {
     localStorage.setItem('username', username ? username : 'unknown')
   }, [username])
 
-  function handleSave(data: ProfileData) {
-    // TODO: call your server action here to save the profile, e.g.
-    // await updateUserData(data)
-    console.log('Profile to save:', data)
+  async function handleSave(data: ProfileData): Promise<SaveResult> {
+    const changes: Partial<ProfileData> = {}
+  
+    const newName = data.name.trim()
+    const newUsername = data.username.trim()
+  
+    if (newName && newName !== name) changes.name = newName
+    if (newUsername && newUsername !== username) changes.username = newUsername
+  
+    // Address: send only if the user filled something in
+    if (data.street.trim() || data.landmark.trim() || data.area.trim()) {
+      changes.street = data.street
+      changes.landmark = data.landmark
+      changes.area = data.area
+    }
+  
+    if (Object.keys(changes).length === 0) return { ok: true }
+  
+    if (changes.username) {
+      const check = await isAlreadyUser(changes.username)
+      if (check.status === 500) {
+        return { ok: false, error: 'Something went wrong. Please try again.' }
+      }
+      if (check.ok) {
+        return { ok: false, error: 'This username is already taken.' }
+      }
+    }
+  
+    const res = await UpdateUserData(username, changes)
+    if (!res.ok) {
+      return { ok: false, error: res.err ? String(res.err) : 'Failed to save changes.' }
+    }
+  
+    if (changes.username) localStorage.setItem('username', changes.username)
+    router.refresh()
+    return { ok: true }
   }
 
   return (
@@ -46,13 +81,22 @@ const User = ({ name, username, email, img }: UserProps) => {
 
         <button
           type="button"
-          onClick={() => setIsEdit(true)}
+          onClick={() => {
+            setError('')
+            setIsEdit(true)
+          }}
           aria-label="Edit profile"
           className="shrink-0 rounded-full bg-white/60 p-3 text-zinc-800 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
         >
           <Pencil size={18} />
         </button>
       </section>
+
+      {error && (
+        <p role="alert" className="rounded-xl bg-red-100 px-4 py-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
 
       {/* Actions */}
       <Buttons username={username} />
