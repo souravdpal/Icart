@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Editpop, { ProfileData } from './components/edit-popup'
 import Buttons from './components/buttons'
 import { isAlreadyUser, UpdateUserData } from '@/lib/action/user'
-
+type SaveResult = { ok: true } | { ok: false; error: string }
 interface UserProps {
   name: string
   username: string
