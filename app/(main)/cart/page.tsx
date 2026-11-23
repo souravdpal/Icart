@@ -18,7 +18,7 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pb-10 sm:px-6">
-      <Sc />
+      <Sc userid={getuser.user_id} />
 
       <section id="details" className="mt-8 flex flex-col items-center gap-6">
         <div className="rounded-full bg-slate-100 px-6 py-2 font-semibold shadow-md">

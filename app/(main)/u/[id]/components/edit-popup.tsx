@@ -27,29 +27,83 @@ interface EditpopProps {
   onSave?: (data: ProfileData) => Promise<SaveResult>
 }
 
-type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'error'
+type UsernameStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'taken'
+  | 'invalid'
+  | 'error'
 
-// 3-20 chars: letters, numbers, underscore. Adjust to your own rules.
+// 3-20 chars: letters, numbers, underscore.
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/
 
 const inputClass =
   'w-full rounded-xl border border-zinc-200 bg-zinc-100/60 px-4 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800/60'
 
-const labelClass = 'mb-1 block text-sm font-medium text-zinc-600 dark:text-zinc-300'
+const labelClass =
+  'mb-1 block text-sm font-medium text-zinc-600 dark:text-zinc-300'
 
 const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) => {
-  const [Name, setName] = useState<string>(name)
-  const [Username, setUsername] = useState<string>(username)
-  const [Email, setEmail] = useState<string>(email)
+  const [Name, setName] = useState<string>(name ?? '')
+  const [Username, setUsername] = useState<string>(username ?? '')
+  const [Email, setEmail] = useState<string>(email ?? '')
   const [street, setStreet] = useState<string>('')
   const [landmark, setLandmark] = useState<string>('')
   const [area, setArea] = useState<string>('')
 
   const [error, setError] = useState<string>('')
   const [saving, setSaving] = useState<boolean>(false)
-  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle')
 
-  // Close with the Escape key.
+  // Async result tagged with the value it was checked for → stale results can't leak.
+  const [check, setCheck] = useState<{
+    value: string
+    status: 'available' | 'taken' | 'error'
+  } | null>(null)
+
+  // ---------- Derived status (no setState in effect body) ----------
+  const trimmed = Username.trim()
+  const original = (username ?? '').trim()
+
+  const syncStatus: 'idle' | 'invalid' | null =
+    trimmed === original || trimmed === ''
+      ? 'idle'
+      : !USERNAME_RE.test(trimmed)
+        ? 'invalid'
+        : null
+
+  const usernameStatus: UsernameStatus =
+    syncStatus !== null
+      ? syncStatus
+      : check && check.value === trimmed
+        ? check.status
+        : 'checking'
+
+  // ---------- Only the async server call lives in the effect ----------
+  useEffect(() => {
+    if (syncStatus !== null) return
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const res = await isAlreadyUser(trimmed)
+        if (cancelled) return
+        setCheck({
+          value: trimmed,
+          status: res.status === 500 ? 'error' : res.ok ? 'taken' : 'available',
+        })
+      } catch {
+        if (!cancelled) setCheck({ value: trimmed, status: 'error' })
+      }
+    }, 400)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [trimmed, syncStatus])
+
+  // ---------- Close on Escape ----------
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') popUp(false)
@@ -57,43 +111,6 @@ const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) =>
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [popUp])
-
-  // Live username check (debounced)
-  useEffect(() => {
-    const value = Username.trim()
-
-    // Unchanged: nothing to check
-    if (value === username) {
-      setUsernameStatus('idle')
-      return
-    }
-
-    // Bad format: no server call needed
-    if (!USERNAME_RE.test(value)) {
-      setUsernameStatus(value === '' ? 'idle' : 'invalid')
-      return
-    }
-
-    setUsernameStatus('checking')
-    let cancelled = false
-
-    const timer = setTimeout(async () => {
-      try {
-        const res = await isAlreadyUser(value)
-        if (cancelled) return
-        if (res.status === 500) setUsernameStatus('error')
-        else setUsernameStatus(res.ok ? 'taken' : 'available') // ok:true = user exists
-      } catch {
-        if (!cancelled) setUsernameStatus('error')
-      }
-    }, 400)
-
-    // Runs when the user types again: drop the pending timer, ignore the old result
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-  }, [Username, username])
 
   const usernameBlocked =
     usernameStatus === 'taken' ||
@@ -213,8 +230,10 @@ const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) =>
                 {usernameStatus === 'checking' && 'Checking availability...'}
                 {usernameStatus === 'available' && '✓ Username is available'}
                 {usernameStatus === 'taken' && '✗ Username is already taken'}
-                {usernameStatus === 'invalid' && 'Use 3-20 letters, numbers, or underscores'}
-                {usernameStatus === 'error' && "Couldn't check right now. Try again."}
+                {usernameStatus === 'invalid' &&
+                  'Use 3-20 letters, numbers, or underscores'}
+                {usernameStatus === 'error' &&
+                  "Couldn't check right now. Try again."}
               </p>
             )}
           </div>
@@ -244,7 +263,9 @@ const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) =>
 
           {/* Delivery address */}
           <fieldset className="grid gap-3">
-            <legend className="mb-1 text-sm font-semibold">Delivery address</legend>
+            <legend className="mb-1 text-sm font-semibold">
+              Delivery address
+            </legend>
 
             <div>
               <label htmlFor="edit-street" className={labelClass}>
@@ -291,7 +312,10 @@ const Editpop = ({ popUp, name, email, username, img, onSave }: EditpopProps) =>
           </fieldset>
 
           {error && (
-            <p role="alert" className="rounded-xl bg-red-100 px-4 py-3 text-sm text-red-700">
+            <p
+              role="alert"
+              className="rounded-xl bg-red-100 px-4 py-3 text-sm text-red-700"
+            >
               {error}
             </p>
           )}

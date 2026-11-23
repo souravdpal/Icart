@@ -8,9 +8,10 @@ interface CartProps {
   product_id: string
   amount: number
   onRemove: (id: string) => void
+  userid : string
 }
 
-const Cart = ({ product_id, amount, onRemove }: CartProps) => {
+const Cart = ({ product_id, amount, onRemove, userid }: CartProps) => {
   const [prods, setProds] = useState<cart_prod_struct | null>(null)
 
   useEffect(() => {
@@ -27,7 +28,7 @@ const Cart = ({ product_id, amount, onRemove }: CartProps) => {
 
   if (!prods) return null
 
-  return <Card {...prods} onRemove={() => onRemove(product_id)} />
+  return <Card userid={userid} {...prods} onRemove={() => onRemove(product_id)} />
 }
 
 export default Cart

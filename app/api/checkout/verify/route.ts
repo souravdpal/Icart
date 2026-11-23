@@ -1,33 +1,21 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
+import { verifyCheckoutLink } from "@/lib/helper/checkout-link";
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const userid = searchParams.get('userid');
-    const exp = searchParams.get('exp');
-    const sig = searchParams.get('sig');
+  const p = new URL(request.url).searchParams;
+  const r = verifyCheckoutLink({
+    userid: p.get("userid"),
+    exp: p.get("exp"),
+    medium: p.get("medium"),
+    pid: p.get("pid"),
+    sig: p.get("sig"),
+  });
 
-    if (!userid || !exp || !sig) {
-        return NextResponse.json({ valid: false, error: "Missing parameters" }, { status: 400 });
-    }
-
-    // Check expiration
-    if (Math.floor(Date.now() / 1000) > Number(exp)) {
-        return NextResponse.json({ valid: false, error: "Link expired" }, { status: 400 });
-    }
-
-    // Recompute HMAC
-    const api_salt = process.env.api_salt_key || "souravilovecoding";
-    const payload = `${userid}.${exp}`;
-    const expectedSig = crypto.createHmac('sha256', api_salt).update(payload).digest('hex');
-
-    const sigBuffer = Buffer.from(sig, 'hex');
-    const expectedBuffer = Buffer.from(expectedSig, 'hex');
-
-    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
-        return NextResponse.json({ valid: false, error: "Signature mismatch" }, { status: 403 });
-    }
-
-    // Success!
-    return NextResponse.json({ valid: true, userid });
+  if (!r.ok) {
+    return NextResponse.json(
+      { valid: false, error: r.reason },
+      { status: r.reason === "invalid" ? 403 : 400 },
+    );
+  }
+  return NextResponse.json({ valid: true, userid: r.userid, medium: r.medium, productId: r.productId });
 }

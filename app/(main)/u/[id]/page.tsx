@@ -6,17 +6,17 @@ const DEFAULT_AVATAR =
   'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'
 
 const Page = async () => {
-  const userDat = await senduserData()
+  const result = await senduserData()
+  if (!result.ok) redirect('/login')
 
-  if (!userDat) {
-    redirect('/login')
-  }
+  const { id, username, email, name } = result.user
 
   return (
     <User
-      username={userDat.username}
-      email={userDat.email}
-      name={userDat.name_}
+      id={id}
+      username={username}
+      email={email}
+      name={name}
       img={DEFAULT_AVATAR}
     />
   )

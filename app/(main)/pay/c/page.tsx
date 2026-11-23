@@ -1,14 +1,16 @@
-import crypto from "crypto";
 import Link from "next/link";
 import { ShieldCheck, AlertTriangle, Clock, Ban } from "lucide-react";
-import PaymentClient from "./checkout";
+import PaymentClient, { type CartItem } from "./checkout";
 import { prisma } from "@/lib/sql/prisma";
+import { verifyCheckoutLink } from "@/lib/helper/checkout-link";
 
 interface PageProps {
   searchParams: Promise<{
     userid?: string;
     exp?: string;
     sig?: string;
+    medium?: string;
+    pid?: string;
   }>;
 }
 
@@ -22,42 +24,16 @@ interface CheckoutUser {
 
 /* ---------- Helpers ---------- */
 
-function getSecret(): string {
-  const secret = process.env.api_salt_key;
-  if (!secret) throw new Error("api_salt_key is not set");
-  return secret;
-}
-
-type LinkCheck = "ok" | "missing" | "expired" | "invalid";
-
-function verifyCheckoutLink(userid?: string, exp?: string, sig?: string): LinkCheck {
-  if (!userid || !exp || !sig) return "missing";
-
-  const expiresAt = Number(exp);
-  if (!Number.isFinite(expiresAt)) return "invalid";
-  if (Math.floor(Date.now() / 1000) > expiresAt) return "expired";
-  if (!/^[0-9a-f]{64}$/i.test(sig)) return "invalid";
-
-  const expectedSig = crypto
-    .createHmac("sha256", getSecret())
-    .update(`${userid}.${exp}`)
-    .digest("hex");
-
-  const a = Buffer.from(sig, "hex");
-  const b = Buffer.from(expectedSig, "hex");
-  return a.length === b.length && crypto.timingSafeEqual(a, b) ? "ok" : "invalid";
-}
-
 async function getCheckoutUser(id: string): Promise<CheckoutUser | null> {
   try {
     const row = await prisma.users.findFirst({
       where: { id },
-      select: { username: true, name_: true, email: true, phone: true, address: true },
+      select: { username: true, name: true, email: true, phone: true, address: true },
     });
     if (!row) return null;
     return {
       username: row.username ?? "",
-      name: row.name_ ?? "",
+      name: row.name ?? "",
       email: row.email ?? "",
       phone: row.phone ?? "",
       address: row.address ?? "",
@@ -114,56 +90,49 @@ function ErrorCard({
   );
 }
 
-/* ---------- Page (default export must be this component) ---------- */
+/* ---------- Page ---------- */
 
 export default async function CheckoutPage({ searchParams }: PageProps) {
-  const { userid, exp, sig } = await searchParams;
+  const { userid, exp, sig, medium, pid } = await searchParams;
 
-  // Verify with the exact value that was signed
-  const check = verifyCheckoutLink(userid, exp, sig);
+  const check = verifyCheckoutLink({ userid, exp, medium, pid, sig });
 
-  if (check === "missing") {
-    return (
-      <ErrorCard
-        tone="amber"
-        icon={<AlertTriangle className="size-8" />}
-        title="Invalid Checkout Link"
-        message="This link is missing required verification parameters. Please return to your cart and try again."
-        cta="Return to Cart"
-      />
-    );
+  if (!check.ok) {
+    switch (check.reason) {
+      case "missing":
+        return (
+          <ErrorCard
+            tone="amber"
+            icon={<AlertTriangle className="size-8" />}
+            title="Invalid Checkout Link"
+            message="This link is missing required verification parameters. Please return to your cart and try again."
+            cta="Return to Cart"
+          />
+        );
+      case "expired":
+        return (
+          <ErrorCard
+            tone="orange"
+            icon={<Clock className="size-8" />}
+            title="Session Timed Out"
+            message="For your security, checkout links expire after a short period. Please generate a fresh link from your cart."
+            cta="Back to Cart"
+          />
+        );
+      default:
+        return (
+          <ErrorCard
+            tone="rose"
+            icon={<Ban className="size-8" />}
+            title="Access Denied"
+            message="Security verification failed. This link signature is invalid or has been modified."
+            cta="Return to Cart"
+          />
+        );
+    }
   }
 
-  if (check === "expired") {
-    return (
-      <ErrorCard
-        tone="orange"
-        icon={<Clock className="size-8" />}
-        title="Session Timed Out"
-        message="For your security, checkout links expire after a short period. Please generate a fresh link from your cart."
-        cta="Back to Cart"
-      />
-    );
-  }
-
-  if (check === "invalid") {
-    return (
-      <ErrorCard
-        tone="rose"
-        icon={<Ban className="size-8" />}
-        title="Access Denied"
-        message="Security verification failed. This link signature is invalid or has been modified."
-        cta="Return to Cart"
-      />
-    );
-  }
-
-  const verifiedUserId = userid as string;
-  const verifiedExp = exp as string;
-  const verifiedSig = sig as string;
-
-  // Trim only for the database lookup (your link currently has trailing spaces)
-  const user = await getCheckoutUser(verifiedUserId.trim());
+  const user = await getCheckoutUser(check.userid.trim());
 
   if (!user) {
     return (
@@ -177,11 +146,20 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     );
   }
 
-  // TODO: replace with the user's real cart items from the database
-  const items = [
-    { id: "prod_101", title: "Wireless Mechanical Keyboard", price: 2499, quantity: 1 },
-    { id: "prod_102", title: "USB-C Ergonomic Mouse", price: 1299, quantity: 2 },
-  ];
+  let items: CartItem[];
+
+  if (check.medium === "p") {
+    // check.productId is signed and verified. Load the product from the DB with it.
+    // const product = await prisma.products.findUnique({ where: { id: check.productId! } });
+    // if (!product) return <ErrorCard ... />;
+    items = [{ id: check.productId!, title: "TODO: load from DB", price: 0, quantity: 1 }];
+  } else {
+    // TODO: load the user's real cart from the database
+    items = [
+      { id: "prod_101", title: "Wireless Mechanical Keyboard", price: 2499, quantity: 1 },
+      { id: "prod_102", title: "USB-C Ergonomic Mouse", price: 1299, quantity: 2 },
+    ];
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6">
@@ -205,9 +183,11 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
         </div>
 
         <PaymentClient
-          userid={verifiedUserId}
-          exp={verifiedExp}
-          sig={verifiedSig}
+          userid={check.userid}
+          exp={String(check.exp)}
+          sig={sig as string}
+          medium={check.medium}
+          productId={check.productId}
           user={user}
           initialItems={items}
         />

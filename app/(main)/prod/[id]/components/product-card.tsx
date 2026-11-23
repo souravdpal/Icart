@@ -4,6 +4,7 @@ import { Star, BadgePercent } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import CenterSection from './center-section'
 import AddToCart from './add-to-cart'
+import { useCheckoutRedirect } from '@/hooks/checkoutMaker'
 
 interface product_schema {
   id: string
@@ -23,19 +24,34 @@ interface product_schema {
   affiliateUrl: string
 }
 
+interface ProductProps extends product_schema {
+  /** userId of the signed-in user; null/undefined when logged out */
+  userid?: string | null
+}
+
 const inr = new Intl.NumberFormat('en-IN')
 const FALLBACK_IMG = '/img/no_image.png'
 
-const Product = (product: product_schema) => {
+const Product = ({ userid, ...product }: ProductProps) => {
   const [expanded, setExpanded] = useState(false)
   const [imgFailed, setImgFailed] = useState(false)
   const router = useRouter()
+
+  const { startCheckout, loading } = useCheckoutRedirect(userid ?? '')
 
   const hasDiscount = product.originalPrice > product.price && product.discountPercent > 0
   const savings = product.originalPrice - product.price
   const soldOut = product.stock === 0
   const lowStock = product.stock > 0 && product.stock <= 5
   const longDescription = (product.description?.length ?? 0) > 160
+
+  const handleBuyNow = () => {
+    if (!userid) {
+      router.push(`/login?next=/product/${product.id}`)
+      return
+    }
+    startCheckout('p', product.id)
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-100 to-zinc-200">
@@ -151,11 +167,11 @@ const Product = (product: product_schema) => {
                 <AddToCart prodId={product.id} disabled={soldOut} />
                 <button
                   type="button"
-                  disabled={soldOut}
-                  onClick={() => router.push(`/buy/${product.id}`)}
+                  disabled={soldOut || loading}
+                  onClick={handleBuyNow}
                   className="h-12 rounded-xl bg-yellow-400 px-4 text-sm font-bold text-black shadow-sm transition hover:bg-amber-300 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 sm:text-base"
                 >
-                  Buy now
+                  {loading ? 'Please wait…' : 'Buy now'}
                 </button>
               </div>
             </div>

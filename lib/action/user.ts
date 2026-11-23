@@ -21,41 +21,67 @@ export async function isAlreadyUser(ck_user: string) {
   }
 }
 export async function UpdateUserData(
-  username: string,
+  identifier: string,
   data: Partial<ProfileData> & { phone?: string; fullAddress?: string },
 ) {
-  const updates: {
-    name_?: string
-    username?: string
-    address?: string | null
-    phone?: string | null
-  } = {}
-
-  if (data.name?.trim()) updates.name_ = data.name.trim()
-  if (data.username?.trim()) updates.username = data.username.trim()
-  if (data.phone !== undefined) updates.phone = data.phone.trim() || null
-
-  if (data.fullAddress !== undefined) {
-    // Checkout sends one complete address string
-    updates.address = data.fullAddress.trim() || null
-  } else {
-    // Profile popup sends separate parts
-    const parts = [data.area, data.street, data.landmark]
-      .map((p) => p?.trim())
-      .filter(Boolean)
-    if (parts.length > 0) updates.address = parts.join('-')
+  const key = identifier?.trim();
+  if (!key) {
+    return { ok: false, err: 'Missing user identifier', status: 400 };
   }
 
-  console.log('UpdateUserData:', { username, updates }) // temporary debug
+  const updates: {
+    name?: string;
+    username?: string;
+    address?: string | null;
+    phone?: string | null;
+  } = {};
 
-  if (Object.keys(updates).length === 0) return { ok: true, status: 200 }
+  if (data.name?.trim()) updates.name = data.name.trim();
+  if (data.username?.trim()) updates.username = data.username.trim();
+  if (data.phone !== undefined) updates.phone = data.phone.trim() || null;
+
+  if (data.fullAddress !== undefined) {
+    updates.address = data.fullAddress.trim() || null;
+  } else {
+    const parts = [data.area, data.street, data.landmark]
+      .map((p) => p?.trim())
+      .filter(Boolean);
+    if (parts.length > 0) updates.address = parts.join('-');
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return { ok: true, status: 200 };
+  }
 
   try {
-    await prisma.users.update({ where: { username }, data: updates })
-    return { ok: true, status: 201 }
+    const existing = await prisma.users.findFirst({
+      where: {
+        OR: [
+          { id: key },
+          { id: key },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return { ok: false, err: 'User not found', status: 404 };
+    }
+
+    await prisma.users.update({
+      where: { id: existing.id },
+      data: updates,
+    });
+
+    return { ok: true, status: 200 };
   } catch (e: any) {
-    console.error('UpdateUserData failed:', e)
-    if (e?.code === 'P2002') return { ok: false, err: 'Username already taken', status: 409 }
-    return { ok: false, err: 'Failed to update profile', status: 500 }
+    if (e?.code === 'P2002') {
+      return { ok: false, err: 'Username already taken', status: 409 };
+    }
+    if (e?.code === 'P2025') {
+      return { ok: false, err: 'User not found', status: 404 };
+    }
+    console.error('UpdateUserData failed:', e);
+    return { ok: false, err: 'Failed to update profile', status: 500 };
   }
 }

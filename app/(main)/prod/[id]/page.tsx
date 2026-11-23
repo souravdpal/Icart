@@ -1,5 +1,7 @@
+import { getUserId } from "@/lib/cookies/cookies_querries";
 import Product from "./components/product-card";
 import { prisma } from "@/lib/sql/prisma";
+import { redirect } from "next/navigation";
 
 
 export default async function ProductPage({
@@ -14,7 +16,11 @@ export default async function ProductPage({
   const row = await prisma.products.findUnique({
     where: { id }
   })
-
+  const u = await getUserId()
+  if (!u) {
+    redirect(`/login`)
+    return
+  }
 
   if (!row) {
     return <div>Product not found</div>;
@@ -39,7 +45,7 @@ export default async function ProductPage({
 
   return (
     <div>
-      <Product {...product} />
+      <Product userid={u.user_id} {...product} />
     </div>
   );
 }

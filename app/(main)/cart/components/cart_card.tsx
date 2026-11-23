@@ -1,41 +1,44 @@
-'use client'
-import React, { useEffect, useRef, useState } from 'react'
-import NumberInput from './setepper'
-import { cart_prod_struct } from '@/types/products'
-import { ArrowUpRight, Percent, Star, Trash2 } from 'lucide-react'
-import { UpdateQunat } from '@/lib/action/setCart'
-import { useRouter } from 'next/navigation'
+"use client";
+import React, { useEffect, useRef, useState } from "react";
+import { useCheckoutRedirect } from "@/hooks/checkoutMaker";
+import NumberInput from "./setepper";
+import { cart_prod_struct } from "@/types/products";
+import { ArrowUpRight, Percent, Star, Trash2 } from "lucide-react";
+import { UpdateQunat } from "@/lib/action/setCart";
+import { useRouter } from "next/navigation";
 
 type CardProps = cart_prod_struct & {
-  onRemove: () => void
-}
+  userid: string; // passed from the server cart page
+  onRemove: () => void;
+};
 
-const Card = ({ onRemove, ...props }: CardProps) => {
-  const router = useRouter()
-  const [currentAmount, setCurrentAmount] = useState<number>(props.amount)
-  const lastConfirmed = useRef<number>(props.amount)
+const Card = ({ onRemove, userid, ...props }: CardProps) => {
+  const router = useRouter();
+  const [currentAmount, setCurrentAmount] = useState<number>(props.amount);
+  const lastConfirmed = useRef<number>(props.amount);
+
+  const { startCheckout, loading } = useCheckoutRedirect(userid);
 
   useEffect(() => {
-    // nothing to sync if the value is already what the server has
-    if (currentAmount === lastConfirmed.current) return
+    if (currentAmount === lastConfirmed.current) return;
 
-    let cancelled = false
-    ;(async () => {
-      const res = await UpdateQunat(props.id, currentAmount)
-      if (cancelled) return
-      if (!res.ok || res.data === 'not updated') {
+    let cancelled = false;
+    (async () => {
+      const res = await UpdateQunat(props.id, currentAmount);
+      if (cancelled) return;
+      if (!res.ok || res.data === "not updated") {
         // roll back to the last value the server accepted
-        setCurrentAmount(lastConfirmed.current)
+        setCurrentAmount(lastConfirmed.current);
       } else {
-        lastConfirmed.current = currentAmount
-        router.refresh()
+        lastConfirmed.current = currentAmount;
+        router.refresh();
       }
-    })()
+    })();
 
     return () => {
-      cancelled = true
-    }
-  }, [currentAmount, props.id, router])
+      cancelled = true;
+    };
+  }, [currentAmount, props.id, router]);
 
   return (
     <article className="group flex w-full flex-col gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:gap-5 sm:p-4">
@@ -43,7 +46,7 @@ const Card = ({ onRemove, ...props }: CardProps) => {
       <div className="relative mx-auto aspect-square w-full max-w-[220px] shrink-0 overflow-hidden rounded-2xl bg-slate-100 sm:mx-0 sm:w-40 md:w-48">
         <img
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          src={props.image ? props.image : '/placeholder.png'}
+          src={props.image ? props.image : "/placeholder.png"}
           alt={props.title}
         />
         {props.discountPercent ? (
@@ -90,10 +93,10 @@ const Card = ({ onRemove, ...props }: CardProps) => {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-bold text-slate-900">
-              ₹{(props.price * currentAmount).toLocaleString('en-IN')}
+              ₹{(props.price * currentAmount).toLocaleString("en-IN")}
             </span>
             <span className="text-sm font-light text-slate-500 line-through">
-              ₹{(props.originalPrice * currentAmount).toLocaleString('en-IN')}
+              ₹{(props.originalPrice * currentAmount).toLocaleString("en-IN")}
             </span>
           </div>
 
@@ -111,16 +114,17 @@ const Card = ({ onRemove, ...props }: CardProps) => {
         {/* Actions */}
         <div className="mt-auto flex flex-col gap-2 min-[420px]:flex-row">
           <button
-            className="inline-flex flex-1 items-center justify-center rounded-xl bg-yellow-300 px-4 py-2.5 text-sm font-bold shadow-sm transition hover:bg-yellow-400 active:scale-[0.98]"
-            onClick={() => router.push(`/buy/${props.id}`)}
+            className="inline-flex flex-1 items-center justify-center rounded-xl bg-yellow-300 px-4 py-2.5 text-sm font-bold shadow-sm transition hover:bg-yellow-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={loading || !userid}
+            onClick={() => startCheckout("p", props.id)}
           >
-            Buy now
+            {loading ? "Please wait..." : "Buy now"}
           </button>
           <button
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-red-50 hover:text-red-600 active:scale-[0.98]"
             onClick={() => {
-              onRemove()
-              router.refresh()
+              onRemove();
+              router.refresh();
             }}
           >
             <Trash2 className="size-4" />
@@ -129,7 +133,7 @@ const Card = ({ onRemove, ...props }: CardProps) => {
         </div>
       </div>
     </article>
-  )
-}
+  );
+};
 
-export default Card
+export default Card;

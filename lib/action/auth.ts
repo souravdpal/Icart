@@ -79,7 +79,7 @@ export async function register_user(data: RegisterInput): Promise<AuthResult> {
 
   try {
     await sql`
-      INSERT INTO users (id, username, name_, email, passwordhash)
+      INSERT INTO users (id, username, name, email, passwordhash)
       VALUES (
         ${uuidv4()},
         ${data.username.trim()},

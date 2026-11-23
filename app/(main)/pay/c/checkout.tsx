@@ -15,6 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { UpdateUserData } from "@/lib/action/user";
+import type { Medium } from "@/lib/helper/checkout-link";
 
 export interface UserData {
   username: string;
@@ -35,6 +36,8 @@ interface PaymentClientProps {
   userid: string;
   exp: string;
   sig: string;
+  medium: Medium;
+  productId: string | null;
   user: UserData;
   initialItems: CartItem[];
 }
@@ -148,6 +151,8 @@ export default function PaymentClient({
   userid,
   exp,
   sig,
+  medium,
+  productId,
   user,
   initialItems,
 }: PaymentClientProps) {
@@ -295,6 +300,8 @@ export default function PaymentClient({
           userid,
           exp,
           sig,
+          medium,
+          pid: productId,
           user: { name, email: user.email, phone, address },
           paymentMethod: method,
           paymentDetails:

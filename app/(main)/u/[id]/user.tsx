@@ -5,41 +5,43 @@ import { useRouter } from 'next/navigation'
 import Editpop, { ProfileData } from './components/edit-popup'
 import Buttons from './components/buttons'
 import { isAlreadyUser, UpdateUserData } from '@/lib/action/user'
+
 type SaveResult = { ok: true } | { ok: false; error: string }
+
 interface UserProps {
+  id: string          // ← added
   name: string
   username: string
   email: string
   img: string
 }
 
-const User = ({ name, username, email, img }: UserProps) => {
+const User = ({ id, name, username, email, img }: UserProps) => {
   const router = useRouter()
   const [isEdit, setIsEdit] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
 
   useEffect(() => {
-    localStorage.setItem('username', username ? username : 'unknown')
+    localStorage.setItem('username', username || 'unknown')
   }, [username])
 
   async function handleSave(data: ProfileData): Promise<SaveResult> {
     const changes: Partial<ProfileData> = {}
-  
+
     const newName = data.name.trim()
     const newUsername = data.username.trim()
-  
+
     if (newName && newName !== name) changes.name = newName
     if (newUsername && newUsername !== username) changes.username = newUsername
-  
-    // Address: send only if the user filled something in
+
     if (data.street.trim() || data.landmark.trim() || data.area.trim()) {
       changes.street = data.street
       changes.landmark = data.landmark
       changes.area = data.area
     }
-  
+
     if (Object.keys(changes).length === 0) return { ok: true }
-  
+
     if (changes.username) {
       const check = await isAlreadyUser(changes.username)
       if (check.status === 500) {
@@ -49,12 +51,16 @@ const User = ({ name, username, email, img }: UserProps) => {
         return { ok: false, error: 'This username is already taken.' }
       }
     }
-  
-    const res = await UpdateUserData(username, changes)
+
+    // Use id, not username — renames break a username-based lookup.
+    const res = await UpdateUserData(id, changes)
     if (!res.ok) {
-      return { ok: false, error: res.err ? String(res.err) : 'Failed to save changes.' }
+      return {
+        ok: false,
+        error: res.err ? String(res.err) : 'Failed to save changes.',
+      }
     }
-  
+
     if (changes.username) localStorage.setItem('username', changes.username)
     router.refresh()
     return { ok: true }
@@ -74,7 +80,9 @@ const User = ({ name, username, email, img }: UserProps) => {
         />
 
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-bold text-zinc-900 sm:text-2xl">{name}</h1>
+          <h1 className="truncate text-xl font-bold text-zinc-900 sm:text-2xl">
+            {name}
+          </h1>
           <p className="truncate text-sm font-medium text-zinc-700">@{username}</p>
           <p className="truncate text-sm text-zinc-600">{email}</p>
         </div>
@@ -93,12 +101,14 @@ const User = ({ name, username, email, img }: UserProps) => {
       </section>
 
       {error && (
-        <p role="alert" className="rounded-xl bg-red-100 px-4 py-3 text-sm text-red-700">
+        <p
+          role="alert"
+          className="rounded-xl bg-red-100 px-4 py-3 text-sm text-red-700"
+        >
           {error}
         </p>
       )}
 
-      {/* Actions */}
       <Buttons username={username} />
 
       {isEdit && (

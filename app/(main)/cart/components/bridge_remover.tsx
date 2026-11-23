@@ -6,10 +6,17 @@ import { RemoveCartItem } from '@/lib/action/setCart'
 
 interface ProductProps {
   products: product[]
+  userId: string
 }
 
-const Filt = ({ products }: ProductProps) => {
+const Filt = ({ products, userId }: ProductProps) => {
   const [prod, setProd] = useState<product[]>(products)
+  const [prevProducts, setPrevProducts] = useState<product[]>(products)
+
+  if (products !== prevProducts) {
+    setPrevProducts(products)
+    setProd(products)
+  }
 
   const removeProdById = async (id: string) => {
     const res = await RemoveCartItem(id)
@@ -26,6 +33,7 @@ const Filt = ({ products }: ProductProps) => {
           product_id={item.product_id}
           amount={item.amount}
           onRemove={removeProdById}
+          userid={userId}
         />
       ))}
     </div>

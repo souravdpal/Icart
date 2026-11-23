@@ -1,10 +1,9 @@
 // app/layout.js
 import './globals.css'
-import { Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 
-const inter = Inter({ subsets: ['latin'] })
 
-export const metadata = {
+export const metadata:{title:string , description:string} = {
   title: 'Shopping site',
   description: 'affliate shooping site for products',
 }

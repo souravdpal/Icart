@@ -7,9 +7,8 @@ export interface product {
   amount: number
 }
 
-const Sc = async () => {
+const Sc = async ({ userid }: { userid: string }) => {
   const cartData = await GetUserCart()
-  console.log('cartData:', JSON.stringify(cartData, null, 2)) // check your terminal, then remove
 
   const raw: unknown = cartData.ok ? cartData.data : []
   const rows: any[] = Array.isArray(raw) ? raw : raw ? [raw] : []
@@ -21,7 +20,7 @@ const Sc = async () => {
 
   return (
     <div>
-      <Filt products={dataCart} />
+      <Filt userId={userid} products={dataCart} />
     </div>
   )
 }

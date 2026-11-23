@@ -32,7 +32,7 @@ export async function addCartProduct(product_id: string): Promise<ReturnObj<stri
         })
 
     } catch (err) {
-        console.log(err)
+        console.error(err)
         return { ok: false, error: "Unkown Error", status: 400 }
     }
 
