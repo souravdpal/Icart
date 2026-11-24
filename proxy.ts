@@ -6,6 +6,7 @@ const SESSION_TTL = 60 * 15; // seconds
 export async function proxy(req: NextRequest) {
     const session = req.cookies.get("sessionId")?.value;
     const refresh = req.cookies.get("refreshToken")?.value;
+    console.log("[PROXY HIT]", req.nextUrl.pathname)
 
     // Not logged in: nothing to renew
     if (!refresh) return NextResponse.next();

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ShieldCheck, AlertTriangle, Clock, Ban } from "lucide-react";
 import PaymentClient, { type CartItem } from "./checkout";
 import { prisma } from "@/lib/sql/prisma";
@@ -41,6 +42,49 @@ async function getCheckoutUser(id: string): Promise<CheckoutUser | null> {
   } catch (e) {
     console.error("getCheckoutUser failed:", e);
     return null;
+  }
+}
+
+async function getSingleItem(productId: string): Promise<CartItem[] | null> {
+  try {
+    const product = await prisma.products.findUnique({
+      where: { id: productId },
+      select: { id: true, title: true, price: true },
+    });
+    if (!product) return null;
+    return [
+      { id: product.id, title: product.title, price: Number(product.price), quantity: 1 },
+    ];
+  } catch (e) {
+    console.error("getSingleItem failed:", e);
+    return null;
+  }
+}
+
+async function getCartItems(userId: string): Promise<CartItem[]> {
+  try {
+    const rows = await prisma.cart.findMany({
+      where: { user_id: userId },
+      select: { product_id: true, amount: true },
+    });
+    if (rows.length === 0) return [];
+
+    const products = await prisma.products.findMany({
+      where: { id: { in: rows.map((r) => r.product_id) } },
+      select: { id: true, title: true, price: true },
+    });
+    const byId = new Map(products.map((p) => [p.id, p]));
+
+    return rows.flatMap((r) => {
+      const p = byId.get(r.product_id);
+      if (!p) return []; // product was deleted, skip it
+      return [
+        { id: p.id, title: p.title, price: Number(p.price), quantity: r.amount },
+      ];
+    });
+  } catch (e) {
+    console.error("getCartItems failed:", e);
+    return [];
   }
 }
 
@@ -132,7 +176,8 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     }
   }
 
-  const user = await getCheckoutUser(check.userid.trim());
+  const userId = check.userid.trim();
+  const user = await getCheckoutUser(userId);
 
   if (!user) {
     return (
@@ -146,19 +191,16 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     );
   }
 
+  // redirect() throws internally, so it must stay outside any try/catch
   let items: CartItem[];
 
   if (check.medium === "p") {
-    // check.productId is signed and verified. Load the product from the DB with it.
-    // const product = await prisma.products.findUnique({ where: { id: check.productId! } });
-    // if (!product) return <ErrorCard ... />;
-    items = [{ id: check.productId!, title: "TODO: load from DB", price: 0, quantity: 1 }];
+    const single = await getSingleItem(check.productId!);
+    if (!single) redirect("/");
+    items = single;
   } else {
-    // TODO: load the user's real cart from the database
-    items = [
-      { id: "prod_101", title: "Wireless Mechanical Keyboard", price: 2499, quantity: 1 },
-      { id: "prod_102", title: "USB-C Ergonomic Mouse", price: 1299, quantity: 2 },
-    ];
+    items = await getCartItems(userId);
+    if (items.length === 0) redirect("/cart");
   }
 
   return (

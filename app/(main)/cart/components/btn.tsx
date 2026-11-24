@@ -7,7 +7,7 @@ interface BtnProps {
   itemCount?: number; // pass cart.length or total quantity from parent
 }
 
-const Btn = ({ userid, itemCount = 0 }: BtnProps) => {
+const Btn = ({ userid, itemCount=0 }: BtnProps) => {
   const { startCheckout, loading } = useCheckoutRedirect(userid);
   const hasItems = itemCount > 0;
   const isDisabled = loading || !userid || !hasItems;

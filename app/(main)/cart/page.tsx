@@ -14,7 +14,11 @@ export default async function Page() {
 
   const res = await getCartTotal()
   const total = res.ok ? res.data.total : 0
-  const totalProd = res.ok ? res.data.totalProd : 0
+  let totalProd: number = res.ok ? res.data.totalProd : 0
+  if (!res.ok || res.data.totalProd == null) {
+    totalProd = 0
+  }
+
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pb-10 sm:px-6">
@@ -38,7 +42,7 @@ export default async function Page() {
           </dl>
 
           <div className="mt-6 flex justify-stretch sm:justify-end [&>*]:w-full sm:[&>*]:w-auto">
-            <Btn userid={getuser.user_id} />
+            <Btn itemCount={totalProd} userid={getuser.user_id} />
           </div>
         </div>
       </section>

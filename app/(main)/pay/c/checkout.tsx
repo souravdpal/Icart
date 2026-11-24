@@ -201,9 +201,9 @@ export default function PaymentClient({
   }, [typedEmail, emailChanged]);
 
   /* ----- Auto-save name, phone and address (email is never included) ----- */
-
   useEffect(() => {
-    if (!user.username) return;
+    const id = userid.trim();
+    if (!id) return;
 
     const name = userInfo.name.trim();
     const phone = userInfo.phone.trim();
@@ -223,7 +223,7 @@ export default function PaymentClient({
     const timer = setTimeout(async () => {
       setSaveState("saving");
       try {
-        const res = await UpdateUserData(user.username, changes);
+        const res = await UpdateUserData(id, changes); // id, not username
         if (!res.ok) throw new Error("save failed");
 
         savedUser.current = {
@@ -242,7 +242,7 @@ export default function PaymentClient({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [userInfo.name, userInfo.phone, userInfo.address, user.username]);
+  }, [userInfo.name, userInfo.phone, userInfo.address, userid]);
 
   /* ----- Handlers ----- */
 
